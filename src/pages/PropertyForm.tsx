@@ -22,6 +22,8 @@ export default function PropertyForm() {
     bathrooms: '',
     area: '',
     status: 'Venta' as PropertyStatus,
+    currency: 'USD',      
+    operation: 'Venta',
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -55,27 +57,32 @@ export default function PropertyForm() {
     setLoading(true);
 
     try {
-      // 1. Upload images first
+      // 1. Subir imágenes primero (si hay)
       let imageUrls: string[] = [];
       if (selectedFiles.length > 0) {
         imageUrls = await api.uploadImages(selectedFiles);
       }
 
-      // 2. Create property
-      await api.createProperty({
-        title: formData.title,
-        description: formData.description,
-        price: Number(formData.price),
-        city: formData.city,
-        address: formData.address,
-        propertyType: formData.propertyType,
-        bedrooms: Number(formData.bedrooms),
-        bathrooms: Number(formData.bathrooms),
-        area: Number(formData.area),
-        status: formData.status,
-        images: imageUrls,
-        agentId: 'agent-1', // Mock agent ID
-      });
+      // 2. Adaptar los datos al formato que espera el backend
+      const propiedadPayload = {
+        titulo: formData.title,
+        descripcion: formData.description,
+        direccion: formData.address,
+        ciudad: formData.city,
+        precio: Number(formData.price),
+        superficieM2: Number(formData.area),
+        habitaciones: Number(formData.bedrooms),
+        banios: Number(formData.bathrooms),
+        tipoId: 1, // Puedes mapear propertyType a un ID real si tienes esa lógica
+        agenteId: 'f4160c1d-52c6-4132-ab83-943482f06eb2', // O el ID real del agente
+        estado: formData.status,
+        imageUrl: imageUrls[0] || '', // Solo la primera imagen, o vacío si no hay
+        operacion: formData.operation,
+        moneda: formData.currency
+      };
+
+      // 3. Crear la propiedad
+      await api.createProperty(propiedadPayload);
 
       setSuccess(true);
       setTimeout(() => {
@@ -168,6 +175,34 @@ export default function PropertyForm() {
                 >
                   <option value="Venta">Venta</option>
                   <option value="Alquiler">Alquiler</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Moneda</label>
+                <select
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all bg-white"
+                >
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="ARS">ARS</option>
+                  <option value="BRL">BRL</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Operación</label>
+                <select
+                  name="operation"
+                  value={formData.operation}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all bg-white"
+                >
+                  <option value="Venta">Venta</option>
+                  <option value="Alquiler">Alquiler</option>
+                  <option value="Temporario">Temporario</option>
                 </select>
               </div>
             </div>

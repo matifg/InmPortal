@@ -16,6 +16,8 @@ export interface Property {
   images: string[];
   agentId: string;
   createdAt: string;
+  currency?: string;
+  operation?: string | null;
 }
 
 export interface User {

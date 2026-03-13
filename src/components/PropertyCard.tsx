@@ -7,12 +7,17 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0
-    }).format(price);
+  const getCurrencyInfo = (currency?: string) => {
+    if (!currency) return { symbol: '€', label: 'Euros' };
+    if (currency === 'USD') return { symbol: '$', label: 'Dólares' };
+    if (currency === 'EUR') return { symbol: '€', label: 'Euros' };
+    if (currency === 'ARS') return { symbol: '$', label: 'Pesos' };
+    return { symbol: currency, label: currency };
+  };
+
+  const formatPrice = (price: number, currency?: string) => {
+    const { symbol, label } = getCurrencyInfo(currency);
+    return price.toLocaleString('es-ES', { maximumFractionDigits: 0 }) + ' ' + symbol + ' (' + label + ')';
   };
 
   return (
@@ -21,7 +26,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         {/* Image Container */}
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
-            src={property.images[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'}
+            src={(property.images && property.images.length > 0 ? property.images[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80')}
             alt={property.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
@@ -38,7 +43,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         {/* Content */}
         <div className="p-5 flex flex-col flex-grow">
           <div className="text-2xl font-bold text-indigo-600 mb-2">
-            {formatPrice(property.price)}
+            {formatPrice(property.price, property.currency)}
             {property.status === 'Alquiler' && <span className="text-sm text-gray-500 font-normal">/mes</span>}
           </div>
           

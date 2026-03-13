@@ -46,12 +46,17 @@ export default function PropertyDetail() {
     );
   }
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0
-    }).format(price);
+  const getCurrencyInfo = (currency?: string) => {
+    if (!currency) return { symbol: '€', label: 'Euros' };
+    if (currency === 'USD') return { symbol: '$', label: 'Dólares' };
+    if (currency === 'EUR') return { symbol: '€', label: 'Euros' };
+    if (currency === 'ARS') return { symbol: '$', label: 'Pesos' };
+    return { symbol: currency, label: currency };
+  };
+
+  const formatPrice = (price: number, currency?: string) => {
+    const { symbol, label } = getCurrencyInfo(currency);
+    return price.toLocaleString('es-ES', { maximumFractionDigits: 0 }) + ' ' + symbol + ' (' + label + ')';
   };
 
   return (
@@ -81,7 +86,7 @@ export default function PropertyDetail() {
           </div>
           <div className="text-left lg:text-right">
             <div className="text-4xl font-bold text-indigo-600">
-              {formatPrice(property.price)}
+              {formatPrice(property.price, property.currency)}
               {property.status === 'Alquiler' && <span className="text-xl text-gray-500 font-normal">/mes</span>}
             </div>
           </div>
