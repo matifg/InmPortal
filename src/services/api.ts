@@ -62,10 +62,29 @@ export const api = {
 
   // GET /propiedades?agentId=:agentId
   getPropertiesByAgent: async (agentId: string): Promise<Property[]> => {
-    await delay(600);
-    return properties.filter(p => p.agentId === agentId).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    // Fetch real data from backend
+    const res = await fetch(`http://localhost:8080/propiedades/agente/${agentId}`);
+    if (!res.ok) throw new Error('Error fetching agent properties');
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+    return data.map((item: any) => ({
+      id: item.id,
+      title: item.titulo,
+      description: item.descripcion,
+      price: item.precio,
+      city: item.ciudad,
+      address: item.direccion,
+      propertyType: item.tipoId === 1 ? 'Casa' : 'Departamento',
+      bedrooms: item.habitaciones,
+      bathrooms: item.banios,
+      area: item.superficieM2,
+      status: item.estado === 'disponible' ? 'Venta' : 'Alquiler',
+      images: [item.imageUrl, ...(Array.isArray(item.imagenes) ? item.imagenes.map((img: any) => img.url) : [])].filter(Boolean),
+      agentId: item.agenteId,
+      createdAt: item.creadoEn || '',
+      currency: item.moneda,
+      operation: item.operacion,
+    }));
   },
 
   // POST /propiedades

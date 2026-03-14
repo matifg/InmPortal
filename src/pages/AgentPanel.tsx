@@ -9,12 +9,15 @@ export default function AgentPanel() {
   const [loading, setLoading] = useState(true);
   
   // Mock agent ID
-  const agentId = 'agent-1';
+  const agentId = 'f4160c1d-52c6-4132-ab83-943482f06eb2';
 
   useEffect(() => {
     const fetchAgentProperties = async () => {
+      console.log('AgentPanel: agentId =', agentId);
+      console.log('AgentPanel: fetching properties...');
       try {
         const data = await api.getPropertiesByAgent(agentId);
+        console.log('AgentPanel: properties fetched:', data);
         setProperties(data);
       } catch (error) {
         console.error('Error fetching agent properties:', error);
