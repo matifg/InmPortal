@@ -36,8 +36,15 @@ export const api = {
 
   // GET /propiedades/:id
   getPropertyById: async (id: string): Promise<Property | undefined> => {
-    // Fetch real data from backend
-    const res = await fetch(`http://localhost:8080/propiedades/${id}`);
+    // Fetch real data from backend con JWT
+    const token = localStorage.getItem('token');
+    const res = await fetch(`http://localhost:8080/propiedades/${id}`,
+      {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      }
+    );
     if (!res.ok) return undefined;
     const item = await res.json();
     return {
@@ -62,8 +69,14 @@ export const api = {
 
   // GET /propiedades?agentId=:agentId
   getPropertiesByAgent: async (agentId: string): Promise<Property[]> => {
-    // Fetch real data from backend
-    const res = await fetch(`http://localhost:8080/propiedades/agente/${agentId}`);
+    // Fetch real data from backend con autenticación JWT
+    const token = localStorage.getItem('token');
+    const res = await fetch(`http://localhost:8080/propiedades/agente/${agentId}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
     if (!res.ok) throw new Error('Error fetching agent properties');
     const data = await res.json();
     if (!Array.isArray(data)) return [];
@@ -115,7 +128,24 @@ export const api = {
       'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
       'https://images.unsplash.com/photo-1600607687931-cecebd808ce2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
     ];
-    
+
     return files.map((_, index) => placeholderImages[index % placeholderImages.length]);
-  }
+  },
+  // PUT /propiedades/:id
+  updateProperty: async (id: string, propertyPayload: any): Promise<any> => {
+    const token = localStorage.getItem('token');
+
+    const res = await fetch(`http://localhost:8080/propiedades/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(propertyPayload),
+    });
+
+    if (!res.ok) throw new Error('Error actualizando propiedad');
+
+    return await res.json();
+  },
 };
