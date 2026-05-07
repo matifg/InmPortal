@@ -12,9 +12,8 @@ export default function Login() {
 
   // ✅ Redirección si ya está logueado (SIN LOOP)
   useEffect(() => {
-    const user = localStorage.getItem('user');
-
-    if (user && window.location.pathname === "/login") {
+    const token = localStorage.getItem('token');
+    if (token && window.location.pathname === "/login") {
       navigate('/dashboard', { replace: true });
     }
   }, []);
@@ -55,13 +54,10 @@ export default function Login() {
 
       const data = await res.json();
 
-      // 🔥 Guardar sesión
-      localStorage.setItem('user', JSON.stringify(data.usuario));
-      if (data.agente) {
-        localStorage.setItem('agente', JSON.stringify(data.agente));
-      }
-      // Guarda el token JWT
+      // 🔥 Guardar sesión (nuevo formato)
       localStorage.setItem('token', data.token);
+      localStorage.setItem('role', data.role);
+      localStorage.setItem('membresiaActiva', JSON.stringify(data.membresiaActiva));
       // Redirige al dashboard
       navigate('/dashboard', { replace: true });
 

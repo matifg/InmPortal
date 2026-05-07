@@ -18,6 +18,7 @@ export interface Property {
   createdAt: string;
   currency?: string;
   operation?: string | null;
+  imagenes?: { url: string }[];
 }
 
 export interface User {

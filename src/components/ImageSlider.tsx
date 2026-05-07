@@ -1,11 +1,17 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-interface ImageSliderProps {
+export interface ImageSliderProps {
   images: string[];
+  imgClassName?: string;
+  containerClassName?: string;
 }
 
-export default function ImageSlider({ images }: ImageSliderProps) {
+const ImageSlider = ({
+  images,
+  imgClassName = '',
+  containerClassName = '',
+}: ImageSliderProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   if (!images || images.length === 0) {
@@ -33,15 +39,15 @@ export default function ImageSlider({ images }: ImageSliderProps) {
   };
 
   return (
-    <div className="relative w-full group">
+    <div className={`relative w-full group ${containerClassName}`}>
       {/* Main Image */}
       <div className="w-full aspect-[16/9] md:aspect-[21/9] rounded-2xl overflow-hidden relative bg-gray-100">
         <img
           src={images[currentIndex]}
           alt={`Imagen ${currentIndex + 1}`}
-          className="w-full h-full object-cover transition-opacity duration-500"
+          className={`w-full h-full object-cover transition-opacity duration-500 ${imgClassName}`}
         />
-        
+
         {/* Navigation Arrows */}
         {images.length > 1 && (
           <>
@@ -74,16 +80,22 @@ export default function ImageSlider({ images }: ImageSliderProps) {
               key={slideIndex}
               onClick={() => goToSlide(slideIndex)}
               className={`relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden snap-center transition-all ${
-                currentIndex === slideIndex 
-                  ? 'ring-2 ring-indigo-600 ring-offset-2 opacity-100' 
+                currentIndex === slideIndex
+                  ? 'ring-2 ring-indigo-600 ring-offset-2 opacity-100'
                   : 'opacity-60 hover:opacity-100'
               }`}
             >
-              <img src={image} alt={`Miniatura ${slideIndex + 1}`} className="w-full h-full object-cover" />
+              <img
+                src={image}
+                alt={`Miniatura ${slideIndex + 1}`}
+                className="w-full h-full object-cover"
+              />
             </button>
           ))}
         </div>
       )}
     </div>
   );
-}
+};
+
+export default ImageSlider;

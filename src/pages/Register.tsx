@@ -12,7 +12,6 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({
     nombre: '',
     apellido: '',
@@ -20,6 +19,9 @@ export default function Register() {
     telefono: '',
     password: ''
   });
+
+  // 1. Estado de rol
+  const [role, setRole] = useState<'CLIENTE' | 'AGENTE'>('CLIENTE');
 
   // Validación en tiempo real
   const validateField = (name: string, value: string) => {
@@ -59,7 +61,8 @@ export default function Register() {
       const res = await fetch('http://localhost:8080/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, rol: 'AGENTE' })
+        // 3. Usar rol dinámico
+        body: JSON.stringify({ ...form, rol: role })
       });
       if (res.ok) {
         navigate('/login');
@@ -88,6 +91,38 @@ export default function Register() {
       </div>
       {/* Card */}
       <div className="relative z-10 w-full max-w-lg mx-auto bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-indigo-700/20 px-10 py-12 flex flex-col gap-8">
+        {/* 2. Selector de rol */}
+        <div className="flex flex-col gap-2 mb-2">
+          <div className="flex justify-center gap-2">
+            <button
+              type="button"
+              className={`px-4 py-2 rounded-xl font-semibold transition-all duration-150
+                ${role === 'CLIENTE'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'bg-white/10 text-indigo-200 hover:bg-white/20'}
+              `}
+              onClick={() => setRole('CLIENTE')}
+            >
+              Buscar propiedades
+            </button>
+            <button
+              type="button"
+              className={`px-4 py-2 rounded-xl font-semibold transition-all duration-150
+                ${role === 'AGENTE'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'bg-white/10 text-indigo-200 hover:bg-white/20'}
+              `}
+              onClick={() => setRole('AGENTE')}
+            >
+              Publicar como agente
+            </button>
+          </div>
+          <div className="text-center text-indigo-200 text-sm mt-1 min-h-[20px]">
+            {role === 'CLIENTE'
+              ? 'Crea una cuenta para guardar favoritos y contactar agentes.'
+              : 'Crea una cuenta de agente para publicar y gestionar propiedades.'}
+          </div>
+        </div>
         <h2 className="text-3xl md:text-4xl font-extrabold text-white text-center mb-1 leading-tight drop-shadow">
           Publicá tus propiedades en minutos
         </h2>
@@ -158,22 +193,13 @@ export default function Register() {
             <div className="text-gray-400 font-semibold mb-2">Acceso</div>
             <div className="relative">
               <input
-                type={showPassword ? 'text' : 'password'}
+                type="password"
                 name="password"
                 placeholder="Contraseña"
                 value={form.password}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-gray-400 focus:bg-white/10 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all duration-200 shadow-sm pr-12"
               />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-400 transition"
-                tabIndex={-1}
-                onClick={() => setShowPassword(v => !v)}
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
             </div>
             {fieldErrors.password && (
               <div className="text-red-400 text-xs mt-1">{fieldErrors.password}</div>
@@ -184,12 +210,17 @@ export default function Register() {
               {error}
             </div>
           )}
+          {/* 5. Botón submit dinámico */}
           <button
             type="submit"
             disabled={loading}
             className={`w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500/50 transition-all duration-200 cursor-pointer shadow-xl shadow-indigo-700/20 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {loading ? 'Creando cuenta...' : 'Registrarse'}
+            {loading
+              ? 'Creando cuenta...'
+              : role === 'CLIENTE'
+                ? 'Crear cuenta gratis'
+                : 'Crear cuenta de agente'}
           </button>
           <div className="text-xs text-gray-400 text-center mt-2">
             Tus datos están protegidos y nunca se compartirán.

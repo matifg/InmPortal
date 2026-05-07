@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, LogIn, LogOut, Menu, X } from 'lucide-react';
+import { Home, LogIn, LogOut, Menu, X, Building2 } from 'lucide-react'; // 👈 Importa Building2
 import { useState, useEffect } from 'react';
 
 export default function Navbar() {
@@ -28,25 +28,31 @@ export default function Navbar() {
           {/* LOGO */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2">
-              <Home className="h-6 w-6 text-indigo-600" />
-              <span className="font-bold text-xl text-gray-900">InmoPortal</span>
+              <Building2 className="h-6 w-6 text-indigo-600" /> {/* 👈 Nuevo icono y color */}
+              <span className="font-bold text-xl text-gray-900">Inmo360</span> {/* 👈 Nuevo nombre */}
             </Link>
           </div>
 
           {/* DESKTOP */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/" className="text-gray-600 hover:text-indigo-600 px-3 py-2">
+            <Link
+              to="/"
+              className="text-gray-600 hover:text-indigo-600 px-3 py-2 cursor-pointer hover:opacity-80 transition duration-200"
+            >
               Inicio
             </Link>
 
-            <Link to="/propiedades" className="text-gray-600 hover:text-indigo-600 px-3 py-2">
+            <Link
+              to="/propiedades"
+              className="text-gray-600 hover:text-indigo-600 px-3 py-2 cursor-pointer hover:opacity-80 transition duration-200"
+            >
               Propiedades
             </Link>
 
             {!user ? (
               <button
                 onClick={() => navigate('/login')}
-                className="flex items-center gap-2 text-indigo-600 font-medium px-3 py-2 hover:bg-indigo-50 rounded-md"
+                className="flex items-center gap-2 text-indigo-600 font-medium px-3 py-2 hover:bg-indigo-50 rounded-md cursor-pointer hover:opacity-80 transition duration-200"
               >
                 <LogIn className="h-5 w-5" />
                 Acceso Agentes
@@ -55,14 +61,14 @@ export default function Navbar() {
               <>
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="flex items-center gap-2 text-indigo-600 font-medium px-3 py-2 hover:bg-indigo-50 rounded-md"
+                  className="flex items-center gap-2 text-indigo-600 font-medium px-3 py-2 hover:bg-indigo-50 rounded-md cursor-pointer hover:opacity-80 transition duration-200"
                 >
-                  Dashboard
+                  Mis Propiedades
                 </button>
 
                 <button
                   onClick={logout}
-                  className="flex items-center gap-2 text-red-600 font-medium px-3 py-2 hover:bg-red-50 rounded-md"
+                  className="flex items-center gap-2 text-red-600 font-medium px-3 py-2 hover:bg-red-50 rounded-md cursor-pointer hover:opacity-80 transition duration-200"
                 >
                   <LogOut className="h-5 w-5" />
                   Cerrar sesión
@@ -92,7 +98,7 @@ export default function Navbar() {
             <Link
               to="/"
               onClick={() => setIsOpen(false)}
-              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-50"
+              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-50 cursor-pointer hover:opacity-80 transition duration-200"
             >
               Inicio
             </Link>
@@ -100,7 +106,7 @@ export default function Navbar() {
             <Link
               to="/propiedades"
               onClick={() => setIsOpen(false)}
-              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-50"
+              className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-50 cursor-pointer hover:opacity-80 transition duration-200"
             >
               Propiedades
             </Link>
@@ -111,7 +117,7 @@ export default function Navbar() {
                   setIsOpen(false);
                   navigate('/login');
                 }}
-                className="w-full text-left px-3 py-2 rounded-md text-indigo-600 hover:bg-indigo-50"
+                className="w-full text-left px-3 py-2 rounded-md text-indigo-600 hover:bg-indigo-50 cursor-pointer hover:opacity-80 transition duration-200"
               >
                 Acceso Agentes
               </button>
@@ -122,7 +128,7 @@ export default function Navbar() {
                     setIsOpen(false);
                     navigate('/dashboard');
                   }}
-                  className="w-full text-left px-3 py-2 rounded-md text-indigo-600 hover:bg-indigo-50"
+                  className="w-full text-left px-3 py-2 rounded-md text-indigo-600 hover:bg-indigo-50 cursor-pointer hover:opacity-80 transition duration-200"
                 >
                   Dashboard
                 </button>
@@ -132,7 +138,7 @@ export default function Navbar() {
                     setIsOpen(false);
                     logout();
                   }}
-                  className="w-full text-left px-3 py-2 rounded-md text-red-600 hover:bg-red-50"
+                  className="w-full text-left px-3 py-2 rounded-md text-red-600 hover:bg-red-50 cursor-pointer hover:opacity-80 transition duration-200"
                 >
                   Cerrar sesión
                 </button>

@@ -5,6 +5,8 @@ import { Property } from '../types';
 import ImageSlider from '../components/ImageSlider';
 import { MapPin, Bed, Bath, Square, Home as HomeIcon, Loader2, ArrowLeft, Phone, Mail } from 'lucide-react';
 
+const BASE_URL = "http://localhost:8080"; // Ajusta según tu backend
+
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
   const [property, setProperty] = useState<Property | null>(null);
@@ -12,16 +14,33 @@ export default function PropertyDetail() {
 
   useEffect(() => {
     const fetchProperty = async () => {
-      if (!id) return;
-      try {
-        const data = await api.getPropertyById(id);
-        setProperty(data || null);
-      } catch (error) {
-        console.error('Error fetching property:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (!id) return;
+
+  try {
+    const data = await api.getPropertyById(id);
+
+    const token = localStorage.getItem('token');
+
+    const res = await fetch(`http://localhost:8080/imagenes/propiedad/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const imagenes = res.ok ? await res.json() : [];
+
+    // 🔥 CLAVE
+    setProperty({
+      ...data,
+      imagenes,
+    });
+
+  } catch (error) {
+    console.error('Error fetching property:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
     fetchProperty();
   }, [id]);
@@ -46,6 +65,35 @@ export default function PropertyDetail() {
     );
   }
 
+  // LOG para debug
+  console.log(property);
+
+  // Validación y mapeo robusto de imágenes
+  let images: string[] = [];
+  if (property && Array.isArray(property.imagenes)) {
+    console.log(property.imagenes);
+    images = property.imagenes
+      .map((img: any) => {
+        let url = img?.url || img?.path || img?.imageUrl || "";
+        if (typeof url === "string" && url.trim() !== "") {
+          // Si no es absoluta, la concateno con BASE_URL
+          if (!/^https?:\/\//i.test(url)) {
+            url = `${BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+          }
+          return url;
+        }
+        return null;
+      })
+      .filter((url): url is string => !!url && url.trim() !== "");
+  }
+  // Fallback si no hay imágenes válidas
+  if (!images.length) {
+    images = ["/no-image.jpg"];
+  }
+
+  // LOG para debug
+  console.log(images);
+
   const getCurrencyInfo = (currency?: string) => {
     if (!currency) return { symbol: '€', label: 'Euros' };
     if (currency === 'USD') return { symbol: '$', label: 'Dólares' };
@@ -60,46 +108,59 @@ export default function PropertyDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link to="/" className="inline-flex items-center text-gray-500 hover:text-indigo-600 mb-6 transition-colors">
+    <div className="min-h-screen bg-gray-50 pb-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8">
+        <Link to="/" className="inline-flex items-center text-gray-500 hover:text-indigo-600 mb-4 transition-colors">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver a resultados
         </Link>
 
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="bg-indigo-100 text-indigo-800 text-sm font-semibold px-3 py-1 rounded-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+          {/* Galería de imágenes protagonista */}
+          <div className="w-full">
+            <div className="rounded-3xl overflow-hidden shadow-2xl border border-gray-100 bg-white flex items-center justify-center h-[240px] sm:h-[320px] lg:h-[540px]">
+              <ImageSlider
+                images={images}
+                imgClassName="object-cover w-full h-full max-h-full"
+                containerClassName="w-full h-full"
+              />
+            </div>
+          </div>
+          {/* Información principal a la derecha */}
+          <div className="flex flex-col justify-center h-full">
+            {/* Badges */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-3 py-1 rounded-full">
                 {property.status}
               </span>
-              <span className="bg-gray-200 text-gray-800 text-sm font-semibold px-3 py-1 rounded-full">
+              <span className="bg-gray-200 text-gray-800 text-xs font-semibold px-3 py-1 rounded-full">
                 {property.propertyType}
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">{property.title}</h1>
-            <div className="flex items-center text-gray-500 text-lg">
-              <MapPin className="h-5 w-5 mr-1.5 shrink-0" />
+            {/* Título y precio juntos */}
+            <div className="flex flex-col gap-2 mb-2">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
+                {property.title}
+              </h1>
+              <div className="text-2xl sm:text-3xl font-bold text-indigo-600 drop-shadow-sm">
+                {formatPrice(property.price, property.currency)}
+                {property.status === 'Alquiler' && (
+                  <span className="text-lg text-gray-500 font-normal">/mes</span>
+                )}
+              </div>
+            </div>
+            {/* Dirección */}
+            <div className="flex items-center gap-2 text-base sm:text-lg text-gray-700 font-medium mb-0">
+              <MapPin className="h-5 w-5 text-indigo-400 mr-1.5 shrink-0" />
               <span>{property.address}, {property.city}</span>
             </div>
           </div>
-          <div className="text-left lg:text-right">
-            <div className="text-4xl font-bold text-indigo-600">
-              {formatPrice(property.price, property.currency)}
-              {property.status === 'Alquiler' && <span className="text-xl text-gray-500 font-normal">/mes</span>}
-            </div>
-          </div>
         </div>
 
-        {/* Image Gallery */}
-        <div className="mb-12">
-          <ImageSlider images={property.images} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        {/* Características y resto del contenido */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-10">
+          <div className="lg:col-span-2 space-y-8">
             {/* Features Grid */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Características principales</h2>
@@ -185,3 +246,10 @@ export default function PropertyDetail() {
     </div>
   );
 }
+
+// Cambios clave en ImageSlider:
+// - Pasa imgClassName="object-cover w-full h-full max-h-full"
+// - El contenedor del slider tiene altura fija y overflow hidden
+// - Layout header+slider juntos para menos scroll
+// - Espaciados verticales reducidos (mb-4, mb-8, pt-4, pb-8)
+// - El contenido importante aparece arriba sin scroll excesivo
