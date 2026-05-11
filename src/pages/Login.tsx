@@ -10,13 +10,20 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // ✅ Redirección si ya está logueado (SIN LOOP)
+  // ✅ Redirección si ya está logueado (según role, SIN LOOP)
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token && window.location.pathname === "/login") {
-      navigate('/dashboard', { replace: true });
+    const role = localStorage.getItem('role');
+    if (token) {
+      if (role === 'ADMIN') {
+        navigate('/admin', { replace: true });
+      } else if (role === 'AGENTE') {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     }
-  }, []);
+  }, [navigate]);
 
   // ✅ Mensaje de registro (SIN LOOP)
   useEffect(() => {
@@ -58,8 +65,16 @@ export default function Login() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('role', data.role);
       localStorage.setItem('membresiaActiva', JSON.stringify(data.membresiaActiva));
-      // Redirige al dashboard
-      navigate('/dashboard', { replace: true });
+      localStorage.setItem('nombre', data.nombre || ''); // <--- AGREGAR ESTA LÍNEA
+
+      // Redirige según role
+      if (data.role === 'ADMIN') {
+        navigate('/admin', { replace: true });
+      } else if (data.role === 'AGENTE') {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
 
     } catch (err: any) {
       setError(err.message || 'Error de autenticación');

@@ -9,6 +9,7 @@ import PropertyForm from './pages/PropertyForm';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import EditProperty from './pages/EditProperty'; // 🔥 IMPORTANTE
+import AdminDashboard from './pages/AdminDashboard';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -36,21 +37,28 @@ export default function App() {
             {/* AGENTE */}
             <Route path="/agent" element={<AgentPanel />} />
             <Route path="/agent/nueva-propiedad" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="AGENTE">
                 <PropertyForm />
               </ProtectedRoute>
             } />
 
-            {/* DASHBOARD */}
+            {/* DASHBOARD AGENTE */}
             <Route path="/dashboard" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="AGENTE">
                 <AgentPanel />
+              </ProtectedRoute>
+            } />
+
+            {/* ADMIN DASHBOARD */}
+            <Route path="/admin" element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminDashboard />
               </ProtectedRoute>
             } />
 
             {/* 🔥 EDITAR PROPIEDAD (CLAVE) */}
             <Route path="/propiedad/editar/:id" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="AGENTE">
                 <EditProperty />
               </ProtectedRoute>
             } />
