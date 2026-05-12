@@ -58,7 +58,7 @@ export default function Register() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8080/auth/register', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // 3. Usar rol dinámico

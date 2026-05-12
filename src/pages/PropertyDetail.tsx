@@ -5,7 +5,7 @@ import { Property } from '../types';
 import ImageSlider from '../components/ImageSlider';
 import { MapPin, Bed, Bath, Square, Home as HomeIcon, Loader2, ArrowLeft, Phone, Mail } from 'lucide-react';
 
-const BASE_URL = "http://localhost:8080"; // Ajusta según tu backend
+const BASE_URL = `${import.meta.env.VITE_API_URL}`; // Ajusta según tu backend
 
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -21,7 +21,7 @@ export default function PropertyDetail() {
 
     const token = localStorage.getItem('token');
 
-    const res = await fetch(`http://localhost:8080/imagenes/propiedad/${id}`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/imagenes/propiedad/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

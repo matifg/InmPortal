@@ -10,7 +10,7 @@ export const api = {
   // GET /propiedades
   getProperties: async (): Promise<Property[]> => {
     // Fetch real data from backend
-    const res = await fetch('http://localhost:8080/propiedades');
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/propiedades`);
     if (!res.ok) throw new Error('Error fetching properties');
     const data = await res.json();
     if (!Array.isArray(data)) return [];
@@ -38,7 +38,7 @@ export const api = {
   getPropertyById: async (id: string): Promise<Property | undefined> => {
     // Fetch real data from backend con JWT
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:8080/propiedades/${id}`,
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/propiedades/${id}`,
       {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -71,7 +71,7 @@ export const api = {
   getPropertiesByAgent: async (agentId: string): Promise<Property[]> => {
     // Fetch real data from backend con autenticación JWT
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:8080/propiedades/agente/${agentId}`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/propiedades/agente/${agentId}`, {
       headers: {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
@@ -106,7 +106,7 @@ export const api = {
    * @param propertyPayload Objeto con los campos en español (ver PropertyForm.tsx)
    */
   createProperty: async (propertyPayload: any): Promise<any> => {
-    const res = await fetch('http://localhost:8080/propiedades', {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/propiedades`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ export const api = {
   updateProperty: async (id: string, propertyPayload: any): Promise<any> => {
     const token = localStorage.getItem('token');
 
-    const res = await fetch(`http://localhost:8080/propiedades/${id}`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/propiedades/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

@@ -14,7 +14,7 @@ export default function EditProperty() {
 
   const token = localStorage.getItem('token');
 
-  fetch(`http://localhost:8080/propiedades/${id}`, {
+  fetch(`${import.meta.env.VITE_API_URL}/propiedades/${id}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

@@ -165,7 +165,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
 
       let propiedad;
       if (isEdit && initialData?.id) {
-        propiedad = await fetch(`http://localhost:8080/propiedades/${initialData.id}`, {
+        propiedad = await fetch(`${import.meta.env.VITE_API_URL}/propiedades/${initialData.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -174,7 +174,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
           body: JSON.stringify(payload),
         }).then(r => r.json());
       } else {
-        propiedad = await fetch('http://localhost:8080/propiedades', {
+        propiedad = await fetch(`${import.meta.env.VITE_API_URL}/propiedades`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       if (imageUrls.length > 0 && propiedad?.id) {
         for (let i = 0; i < imageUrls.length; i++) {
           try {
-            await fetch('http://localhost:8080/imagenes', {
+            await fetch(`${import.meta.env.VITE_API_URL}/imagenes`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

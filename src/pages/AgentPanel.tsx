@@ -44,7 +44,7 @@ export default function AgentPanel() {
   const fetchAgent = async () => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('No autenticado');
-    const res = await fetch('http://localhost:8080/agentes/me', {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/agentes/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error('No autorizado o no es agente');
@@ -62,7 +62,7 @@ export default function AgentPanel() {
         data.map(async (prop: any) => {
           try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:8080/imagenes/propiedad/${prop.id}`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/imagenes/propiedad/${prop.id}`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             const imagenes = res.ok ? await res.json() : [];

@@ -32,7 +32,7 @@ export default function AdminDashboard() {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch('http://localhost:8080/admin/agentes', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/agentes`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
     setUpdatingId(agente.usuarioId);
     setError('');
     try {
-      const res = await fetch(`http://localhost:8080/admin/usuarios/${agente.usuarioId}/membresia`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/usuarios/${agente.usuarioId}/membresia`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
