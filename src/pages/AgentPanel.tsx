@@ -4,6 +4,8 @@ import { api } from '../services/api';
 import { Property } from '../types';
 import { Plus, Edit, Trash2, Loader2, MapPin, ExternalLink, Home, Search, X, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
+import MembresiaBanner from '../components/MembresiaBanner';
+import { readMembresiaFromStorage, syncMembresiaFromAgentResponse } from '../lib/membresia';
 
 // Badge UI mejorada
 function StatusBadge({ status }: { status: string }) {
@@ -37,8 +39,13 @@ export default function AgentPanel() {
 
   // Nuevo: ordenamiento unificado
   const [order, setOrder] = useState('date-desc');
+  const [membresiaActiva, setMembresiaActiva] = useState(readMembresiaFromStorage);
 
   const navigate = useNavigate();
+
+  const notifyMembresiaInactiva = () => {
+    toast.error('Activá tu membresía para publicar nuevas propiedades');
+  };
 
   // Nueva función para obtener el agente autenticado
   const fetchAgent = async () => {
@@ -48,7 +55,9 @@ export default function AgentPanel() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error('No autorizado o no es agente');
-    return await res.json();
+    const agente = await res.json();
+    setMembresiaActiva(syncMembresiaFromAgentResponse(agente));
+    return agente;
   };
 
   // Refactor: obtener agente antes de pedir propiedades
@@ -147,19 +156,32 @@ export default function AgentPanel() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 py-10">
       <div className="max-w-6xl mx-auto px-4 sm:px-8">
+        <MembresiaBanner membresiaActiva={membresiaActiva} className="mb-6" />
+
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
           <div>
             <h1 className="text-5xl font-extrabold text-gray-900 tracking-tight mb-1 leading-tight">Panel de Agente</h1>
             <p className="text-gray-500 text-lg font-medium">Gestiona tus propiedades publicadas</p>
           </div>
-          <Link
-            to="/agent/nueva-propiedad"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-500 hover:scale-105 text-white px-7 py-3 rounded-2xl font-bold shadow-lg transition-all duration-200 text-lg"
-          >
-            <Plus className="h-6 w-6" />
-            Nueva Propiedad
-          </Link>
+          {membresiaActiva ? (
+            <Link
+              to="/dashboard/nueva-propiedad"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-500 hover:scale-105 text-white px-7 py-3 rounded-2xl font-bold shadow-lg transition-all duration-200 text-lg"
+            >
+              <Plus className="h-6 w-6" />
+              Nueva Propiedad
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={notifyMembresiaInactiva}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-500 opacity-50 cursor-not-allowed text-white px-7 py-3 rounded-2xl font-bold shadow-lg text-lg"
+            >
+              <Plus className="h-6 w-6" />
+              Nueva Propiedad
+            </button>
+          )}
         </div>
 
         {/* FILTROS Y ORDENAMIENTO */}
@@ -238,13 +260,24 @@ export default function AgentPanel() {
             <Home className="h-12 w-12 text-indigo-400 mb-2" />
             <h3 className="text-xl font-bold text-gray-900">No se encontraron propiedades</h3>
             <p className="text-gray-500 mb-4">Prueba ajustando los filtros o creando una nueva propiedad.</p>
-            <Link
-              to="/agent/nueva-propiedad"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-500 hover:scale-105 text-white px-5 py-2 rounded-lg font-semibold shadow transition-all duration-200"
-            >
-              <Plus className="h-5 w-5" />
-              Nueva Propiedad
-            </Link>
+            {membresiaActiva ? (
+              <Link
+                to="/dashboard/nueva-propiedad"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-500 hover:scale-105 text-white px-5 py-2 rounded-lg font-semibold shadow transition-all duration-200"
+              >
+                <Plus className="h-5 w-5" />
+                Nueva Propiedad
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={notifyMembresiaInactiva}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-500 opacity-50 cursor-not-allowed text-white px-5 py-2 rounded-lg font-semibold shadow"
+              >
+                <Plus className="h-5 w-5" />
+                Nueva Propiedad
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-7">

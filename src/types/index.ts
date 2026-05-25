@@ -1,5 +1,13 @@
 export type PropertyType = 'Casa' | 'Departamento' | 'Terreno' | 'Local Comercial' | 'Oficina';
-export type PropertyStatus = 'Venta' | 'Alquiler';
+export type PropertyStatus = 'Venta' | 'Alquiler' | 'Temporario';
+
+export interface AgentContact {
+  id?: string;
+  nombre: string;
+  email?: string;
+  telefono?: string;
+  inmobiliaria?: string;
+}
 
 export interface Property {
   id: string;
@@ -18,6 +26,9 @@ export interface Property {
   createdAt: string;
   currency?: string;
   operation?: string | null;
+  tipoId?: number;
+  zona?: string;
+  agent?: AgentContact;
   imagenes?: { url: string }[];
 }
 

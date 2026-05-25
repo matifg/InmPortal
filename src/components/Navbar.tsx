@@ -95,26 +95,23 @@ export default function Navbar() {
     }
 
     if (role === 'AGENTE') {
+      const panelActive =
+        location.pathname === '/dashboard' ||
+        location.pathname.startsWith('/dashboard/') ||
+        location.pathname.startsWith('/propiedad/editar');
+
       return (
         <>
           <Link
             to="/dashboard"
-            className={`flex items-center gap-2 px-3 py-2 rounded-md font-semibold transition-all duration-200 hover:scale-[1.02] ${isActive('/dashboard') ? 'text-indigo-700 bg-indigo-50 shadow-sm' : 'text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900'
+            className={`flex items-center gap-2 px-3 py-2 rounded-md font-semibold transition-all duration-200 hover:scale-[1.02] ${panelActive ? 'text-indigo-700 bg-indigo-50 shadow-sm' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-100'
               }`}
           >
             <LayoutDashboard className="h-5 w-5" />
-            Dashboard
-          </Link>
-          <Link
-            to="/agent"
-            className={`flex items-center gap-2 px-3 py-2 rounded-md font-medium transition-all duration-200 hover:scale-[1.02] ${isActive('/agent') ? 'text-indigo-700 bg-indigo-50 shadow-sm' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-100'
-              }`}
-          >
-            <Building2 className="h-5 w-5" />
             Mis propiedades
           </Link>
           <Link
-            to="/agent/nueva-propiedad"
+            to="/dashboard/nueva-propiedad"
             className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-green-400 to-green-600 text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
             style={{ boxShadow: '0 2px 8px 0 rgba(34,197,94,0.10)' }}
           >
@@ -164,7 +161,7 @@ export default function Navbar() {
             <button
               onClick={() => {
                 setDropdown(false);
-                if (role === 'ADMIN') navigate('/admin/cuenta');
+                if (role === 'ADMIN') navigate('/admin');
                 else if (role === 'AGENTE') navigate('/dashboard');
               }}
               className="w-full flex items-center gap-2 text-left px-4 py-2 rounded-md text-gray-700 hover:bg-gray-50 hover:text-indigo-700 transition-all duration-200"

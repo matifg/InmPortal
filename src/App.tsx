@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 
@@ -34,20 +34,21 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* AGENTE */}
-            <Route path="/agent" element={<AgentPanel />} />
-            <Route path="/agent/nueva-propiedad" element={
-              <ProtectedRoute requiredRole="AGENTE">
-                <PropertyForm />
-              </ProtectedRoute>
-            } />
-
-            {/* DASHBOARD AGENTE */}
+            {/* AGENTE — rutas canónicas */}
             <Route path="/dashboard" element={
               <ProtectedRoute requiredRole="AGENTE">
                 <AgentPanel />
               </ProtectedRoute>
             } />
+            <Route path="/dashboard/nueva-propiedad" element={
+              <ProtectedRoute requiredRole="AGENTE">
+                <PropertyForm />
+              </ProtectedRoute>
+            } />
+
+            {/* Redirecciones legacy */}
+            <Route path="/agent" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/agent/nueva-propiedad" element={<Navigate to="/dashboard/nueva-propiedad" replace />} />
 
             {/* ADMIN DASHBOARD */}
             <Route path="/admin" element={

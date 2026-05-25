@@ -1,4 +1,45 @@
-import { Property } from '../types';
+import { Property, PropertyType, AgentContact } from '../types';
+import { parseAgentContact, fetchAgentContact } from '../lib/agentContact';
+
+function mapTipoId(tipoId?: number): PropertyType {
+  if (tipoId === 1) return 'Casa';
+  if (tipoId === 2) return 'Departamento';
+  if (tipoId === 3) return 'Terreno';
+  if (tipoId === 4) return 'Local Comercial';
+  if (tipoId === 5) return 'Oficina';
+  return 'Departamento';
+}
+
+function mapStatus(operacion?: string | null, estado?: string | null): Property['status'] {
+  const op = operacion?.trim();
+  if (op === 'Venta' || op === 'Alquiler' || op === 'Temporario') return op;
+  if (estado?.toLowerCase() === 'disponible') return 'Venta';
+  return 'Alquiler';
+}
+
+function mapPropertyItem(item: any): Property {
+  return {
+    id: item.id,
+    title: item.titulo,
+    description: item.descripcion,
+    price: item.precio,
+    city: item.ciudad,
+    address: item.direccion,
+    propertyType: mapTipoId(item.tipoId),
+    bedrooms: item.habitaciones,
+    bathrooms: item.banios,
+    area: item.superficieM2,
+    status: mapStatus(item.operacion, item.estado),
+    images: [item.imageUrl, ...(Array.isArray(item.imagenes) ? item.imagenes.map((img: any) => img.url) : [])].filter(Boolean),
+    agentId: item.agenteId,
+    createdAt: item.creadoEn || '',
+    currency: item.moneda,
+    operation: item.operacion,
+    tipoId: item.tipoId,
+    zona: item.zona,
+    agent: parseAgentContact(item.agente ?? item.agent) ?? undefined,
+  };
+}
 
 // Simulated delay for API calls
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -14,24 +55,7 @@ export const api = {
     if (!res.ok) throw new Error('Error fetching properties');
     const data = await res.json();
     if (!Array.isArray(data)) return [];
-    return data.map((item: any) => ({
-      id: item.id,
-      title: item.titulo,
-      description: item.descripcion,
-      price: item.precio,
-      city: item.ciudad,
-      address: item.direccion,
-      propertyType: item.tipoId === 1 ? 'Casa' : 'Departamento',
-      bedrooms: item.habitaciones,
-      bathrooms: item.banios,
-      area: item.superficieM2,
-      status: item.estado === 'disponible' ? 'Venta' : 'Alquiler',
-      images: [item.imageUrl, ...(Array.isArray(item.imagenes) ? item.imagenes.map((img: any) => img.url) : [])].filter(Boolean),
-      agentId: item.agenteId,
-      createdAt: item.creadoEn || '',
-      currency: item.moneda,
-      operation: item.operacion,
-    }));
+    return data.map(mapPropertyItem);
   },
 
   // GET /propiedades/:id
@@ -47,24 +71,15 @@ export const api = {
     );
     if (!res.ok) return undefined;
     const item = await res.json();
-    return {
-      id: item.id,
-      title: item.titulo,
-      description: item.descripcion,
-      price: item.precio,
-      city: item.ciudad,
-      address: item.direccion,
-      propertyType: item.tipoId === 1 ? 'Casa' : 'Departamento',
-      bedrooms: item.habitaciones,
-      bathrooms: item.banios,
-      area: item.superficieM2,
-      status: item.estado === 'disponible' ? 'Venta' : 'Alquiler',
-      images: Array.isArray(item.imagenes) ? item.imagenes.map((img: any) => img.url) : [],
-      agentId: item.agenteId,
-      createdAt: item.creadoEn || '',
-      currency: item.moneda,
-      operation: item.operacion,
-    };
+    const property = mapPropertyItem(item);
+    if (!property.agent && property.agentId) {
+      property.agent = (await fetchAgentContact(property.agentId)) ?? undefined;
+    }
+    return property;
+  },
+
+  getAgentContact: async (agentId: string): Promise<AgentContact | null> => {
+    return fetchAgentContact(agentId);
   },
 
   // GET /propiedades?agentId=:agentId
@@ -80,24 +95,7 @@ export const api = {
     if (!res.ok) throw new Error('Error fetching agent properties');
     const data = await res.json();
     if (!Array.isArray(data)) return [];
-    return data.map((item: any) => ({
-      id: item.id,
-      title: item.titulo,
-      description: item.descripcion,
-      price: item.precio,
-      city: item.ciudad,
-      address: item.direccion,
-      propertyType: item.tipoId === 1 ? 'Casa' : 'Departamento',
-      bedrooms: item.habitaciones,
-      bathrooms: item.banios,
-      area: item.superficieM2,
-      status: item.estado === 'disponible' ? 'Venta' : 'Alquiler',
-      images: [item.imageUrl, ...(Array.isArray(item.imagenes) ? item.imagenes.map((img: any) => img.url) : [])].filter(Boolean),
-      agentId: item.agenteId,
-      createdAt: item.creadoEn || '',
-      currency: item.moneda,
-      operation: item.operacion,
-    }));
+    return data.map(mapPropertyItem);
   },
 
   // POST /propiedades

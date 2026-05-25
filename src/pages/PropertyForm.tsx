@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 import { UploadCloud, Home, MapPin, DollarSign, Bed, Bath, Ruler, Info, X as XIcon } from 'lucide-react';
+import MembresiaBanner from '../components/MembresiaBanner';
+import { useMembresia } from '../hooks/useMembresia';
 
 export default function PropertyForm({ initialData, isEdit = false }: any) {
   const navigate = useNavigate();
@@ -11,8 +13,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
   const [errorMsg, setErrorMsg] = useState('');
   const [imageFiles, setImageFiles] = useState<File[]>([]);
 
-  // 3. Estado membresía
-  const [membresiaActiva, setMembresiaActiva] = useState(true);
+  const { membresiaActiva } = useMembresia();
 
   // 2. Agregar zona al estado
   const [formData, setFormData] = useState({
@@ -46,15 +47,6 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         operation: initialData.operacion || 'Venta',
         zona: initialData.zona || '',
       });
-    }
-    // 3. Leer membresía activa
-    const mem = localStorage.getItem('membresiaActiva');
-    if (mem) {
-      try {
-        setMembresiaActiva(JSON.parse(mem) === true);
-      } catch {
-        setMembresiaActiva(true);
-      }
     }
   }, [initialData]);
 
@@ -120,6 +112,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (loading) return;
+    if (!membresiaActiva) return;
     setLoading(true);
     setErrorMsg('');
 
@@ -243,6 +236,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
 
       <div className="relative z-10 w-full px-4">
         <div className="bg-white/90 p-12 rounded-3xl shadow-2xl max-w-6xl mx-auto">
+          <MembresiaBanner membresiaActiva={membresiaActiva} className="mb-6" />
 
           {/* Título principal */}
           <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
@@ -537,7 +531,9 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                 {membresiaActiva
                   ? loading
                     ? 'Guardando...'
-                    : 'Publicar propiedad'
+                    : isEdit
+                      ? 'Guardar cambios'
+                      : 'Publicar propiedad'
                   : 'Activá tu membresía para publicar'}
               </button>
             </div>
