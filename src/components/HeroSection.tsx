@@ -1,5 +1,10 @@
+import { useEffect, useRef, useState } from 'react';
 import { Search, MapPin, Home as HomeIcon, RotateCcw, Tag, ChevronDown } from 'lucide-react';
 import { PropertySearchFilters } from '../lib/filterProperties';
+
+const HERO_VIDEO = '/videos/hero.mp4';
+const HERO_POSTER =
+  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
 
 interface HeroSectionProps {
   filters: PropertySearchFilters;
@@ -15,38 +20,112 @@ const fieldClass =
 const labelClass = 'text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5 text-left';
 
 export default function HeroSection({ filters, onFiltersChange, onSearch, onClear, canClear }: HeroSectionProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [videoReady, setVideoReady] = useState(false);
+
+  useEffect(() => {
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+      setVideoEnabled(false);
+      return;
+    }
+
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = () => setVideoEnabled(!media.matches);
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!videoEnabled) return;
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!video.src) video.src = HERO_VIDEO;
+          video.play().catch(() => {
+            /* autoplay bloqueado o error de carga */
+          });
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [videoEnabled]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch();
   };
 
+  const handleVideoError = () => {
+    setVideoEnabled(false);
+  };
+
   return (
-    <section className="relative min-h-[420px] sm:min-h-[460px] flex items-end sm:items-center pb-10 sm:pb-0">
-      <div className="absolute inset-0 overflow-hidden">
+    <section className="relative flex min-h-[85vh] max-h-[100vh] items-end sm:items-center pb-10 sm:pb-0">
+      <div className="absolute inset-0 overflow-hidden bg-slate-950">
         <img
-          src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80"
+          src={HERO_POSTER}
           alt=""
-          className="h-full w-full object-cover"
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+            videoReady && videoEnabled ? 'opacity-0' : 'opacity-100'
+          }`}
+          aria-hidden
+          fetchPriority="high"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/75 via-slate-900/60 to-slate-900/90" />
+
+        {videoEnabled && (
+          <video
+            ref={videoRef}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+              videoReady ? 'opacity-100' : 'opacity-0'
+            }`}
+            muted
+            loop
+            playsInline
+            autoPlay
+            preload="none"
+            poster={HERO_POSTER}
+            aria-hidden
+            onCanPlay={() => setVideoReady(true)}
+            onError={handleVideoError}
+          />
+        )}
+
+        <div className="absolute inset-0 bg-slate-950/50 md:bg-slate-950/45" aria-hidden />
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-slate-950/55 via-slate-900/40 to-slate-900/85"
+          aria-hidden
+        />
       </div>
 
       <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="text-center sm:text-left mb-8 sm:mb-10">
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-indigo-100 border border-white/10 mb-4">
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-indigo-100 border border-white/10 mb-4 backdrop-blur-sm">
             Catálogo Inmo360
           </p>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight drop-shadow-sm">
             Encontrá tu próxima propiedad
           </h1>
-          <p className="mt-3 text-base sm:text-lg text-slate-300 max-w-xl mx-auto sm:mx-0">
+          <p className="mt-3 text-base sm:text-lg text-slate-200 max-w-xl mx-auto sm:mx-0 drop-shadow-sm">
             Filtrá por ciudad, tipo y operación en segundos.
           </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-white/20 bg-white/95 backdrop-blur-md shadow-2xl shadow-slate-900/20 p-4 sm:p-5"
+          className="rounded-2xl border border-white/20 bg-white/95 backdrop-blur-md shadow-2xl shadow-slate-900/30 p-4 sm:p-5"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <div>
