@@ -1,5 +1,21 @@
 import { Property, PropertyType, AgentContact } from '../types';
 import { parseAgentContact, fetchAgentContact } from '../lib/agentContact';
+import { normalizeImageUrl } from '../lib/propertyImages';
+
+function mapPropertyImages(item: { imageUrl?: string | null; imagenes?: { url?: string; orden?: number }[] }): string[] {
+  const portada = item.imageUrl?.trim() ? normalizeImageUrl(item.imageUrl.trim()) : '';
+  const fromGallery = Array.isArray(item.imagenes)
+    ? [...item.imagenes]
+        .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+        .map((img) => (img?.url?.trim() ? normalizeImageUrl(img.url.trim()) : ''))
+        .filter(Boolean)
+    : [];
+
+  if (portada) {
+    return [portada, ...fromGallery.filter((url) => url !== portada)];
+  }
+  return fromGallery;
+}
 
 function mapTipoId(tipoId?: number): PropertyType {
   if (tipoId === 1) return 'Casa';
@@ -30,7 +46,7 @@ function mapPropertyItem(item: any): Property {
     bathrooms: item.banios,
     area: item.superficieM2,
     status: mapStatus(item.operacion, item.estado),
-    images: [item.imageUrl, ...(Array.isArray(item.imagenes) ? item.imagenes.map((img: any) => img.url) : [])].filter(Boolean),
+    images: mapPropertyImages(item),
     agentId: item.agenteId,
     createdAt: item.creadoEn || '',
     currency: item.moneda,

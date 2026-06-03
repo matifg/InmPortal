@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Bed, Bath, Square, MapPin } from 'lucide-react';
+import { Bed, Bath, Square, MapPin, Home } from 'lucide-react';
 import { Property } from '../types';
 
 interface PropertyCardProps {
@@ -7,6 +7,7 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
+  const coverSrc = property.images?.[0] ?? '';
   const getCurrencyInfo = (currency?: string) => {
     if (!currency) return { symbol: '€', label: 'Euros' };
     if (currency === 'USD') return { symbol: '$', label: 'Dólares' };
@@ -24,12 +25,20 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     <Link to={`/propiedad/${property.id}`} className="group block">
       <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 border border-slate-200/70 h-full flex flex-col">
         {/* Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden">
-          <img
-            src={(property.images && property.images.length > 0 ? property.images[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80')}
-            alt={property.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+        <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+          {coverSrc ? (
+            <img
+              src={coverSrc}
+              alt={property.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+              <Home className="h-10 w-10 opacity-40" />
+              <span className="text-xs font-medium">Sin imagen</span>
+            </div>
+          )}
           <div className="absolute top-4 left-4 flex gap-2">
             <span className="bg-slate-900/85 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
               {property.status}
