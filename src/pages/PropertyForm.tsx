@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
-import { UploadCloud, Home, MapPin, DollarSign, Bed, Bath, Ruler, Info, X as XIcon } from 'lucide-react';
+import { UploadCloud, Home, MapPin, DollarSign, Bed, Bath, Ruler, Info, X as XIcon, Star } from 'lucide-react';
 import MembresiaBanner from '../components/MembresiaBanner';
 import { useMembresia } from '../hooks/useMembresia';
+import { fetchProvincias, fetchLocalidades, type UbicacionItem } from '../services/ubicaciones';
 
 export default function PropertyForm({ initialData, isEdit = false }: any) {
   const navigate = useNavigate();
@@ -15,7 +16,14 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
 
   const { membresiaActiva } = useMembresia();
 
-  // 2. Agregar zona al estado
+  const [provincias, setProvincias] = useState<UbicacionItem[]>([]);
+  const [localidades, setLocalidades] = useState<UbicacionItem[]>([]);
+  const [provinciaId, setProvinciaId] = useState('');
+  const [localidadId, setLocalidadId] = useState('');
+  const [loadingProvincias, setLoadingProvincias] = useState(true);
+  const [loadingLocalidades, setLoadingLocalidades] = useState(false);
+  const [ubicacionError, setUbicacionError] = useState('');
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -50,6 +58,58 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     }
   }, [initialData]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingProvincias(true);
+      setUbicacionError('');
+      try {
+        const list = await fetchProvincias();
+        if (cancelled) return;
+        setProvincias(list);
+        if (list.length === 0) setUbicacionError('No hay provincias disponibles.');
+      } catch {
+        if (!cancelled) setUbicacionError('No se pudieron cargar las provincias.');
+      } finally {
+        if (!cancelled) setLoadingProvincias(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!provinciaId) {
+      setLocalidades([]);
+      setLocalidadId('');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingLocalidades(true);
+      setUbicacionError('');
+      setLocalidadId('');
+      setFormData(prev => ({ ...prev, city: '' }));
+      try {
+        const list = await fetchLocalidades(provinciaId);
+        if (cancelled) return;
+        setLocalidades(list);
+        if (list.length === 0) setUbicacionError('No hay localidades para esta provincia.');
+      } catch {
+        if (!cancelled) setUbicacionError('No se pudieron cargar las localidades.');
+      } finally {
+        if (!cancelled) setLoadingLocalidades(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [provinciaId]);
+
+  const onLocalidadChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    setLocalidadId(id);
+    const loc = localidades.find(l => l.id === id);
+    setFormData(prev => ({ ...prev, city: loc?.nombre ?? '' }));
+  };
+
   const formatPrice = (value: string) => {
     const number = value.replace(/\D/g, '');
     return new Intl.NumberFormat('es-AR').format(Number(number));
@@ -79,6 +139,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     if (!formData.city.trim()) return 'La ciudad es obligatoria';
     if (!formData.address.trim()) return 'La dirección es obligatoria';
     if (!formData.zona) return 'La zona es obligatoria';
+    if (!isEdit && imageFiles.length === 0) return 'Subí al menos una imagen de la propiedad';
     return null;
   };
 
@@ -104,9 +165,18 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     }
   };
 
-  // 2. Eliminar imagen de la previsualización
   const removeImage = (idx: number) => {
     setImageFiles(files => files.filter((_, i) => i !== idx));
+  };
+
+  const setAsPortada = (idx: number) => {
+    if (idx === 0) return;
+    setImageFiles(files => {
+      const next = [...files];
+      const [portada] = next.splice(idx, 1);
+      next.unshift(portada);
+      return next;
+    });
   };
 
   const handleSubmit = async (e: any) => {
@@ -125,7 +195,6 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       return;
     }
 
-    // Subir imágenes
     let imageUrls: string[] = [];
     if (imageFiles.length > 0) {
       for (const file of imageFiles) {
@@ -138,8 +207,13 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       }
     }
 
+    if (!isEdit && imageUrls.length === 0) {
+      setErrorMsg('No se pudieron subir las imágenes. Intentá de nuevo.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // 1. Eliminar agenteId del payload
       const payload = {
         titulo: formData.title,
         descripcion: formData.description,
@@ -213,10 +287,23 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
   const label = "text-sm font-medium text-gray-600 mb-1";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImageFiles(Array.from(e.target.files));
+    if (e.target.files?.length) {
+      setImageFiles(prev => [...prev, ...Array.from(e.target.files!)]);
     }
+    e.target.value = '';
   };
+
+  const imagesRequired = !isEdit;
+  const imagesMissing = imagesRequired && imageFiles.length === 0;
+
+  const previewUrls = useMemo(
+    () => imageFiles.map(file => URL.createObjectURL(file)),
+    [imageFiles]
+  );
+
+  useEffect(() => {
+    return () => previewUrls.forEach(url => URL.revokeObjectURL(url));
+  }, [previewUrls]);
 
   function Tooltip({ text }: { text: string }) {
     return (
@@ -329,18 +416,44 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                 <MapPin className="h-6 w-6 text-indigo-500" />
                 <h2 className="text-2xl font-semibold text-gray-900 tracking-wide">Ubicación</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Ciudad <span className="text-red-500">*</span>
+                    Provincia <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="Ej: Buenos Aires"
-                    className={`w-full px-5 py-3 rounded-lg border ${errorMsg && !formData.city.trim() ? 'border-red-500' : 'border-gray-200'} bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition placeholder-gray-400`}
-                  />
+                  <select
+                    value={provinciaId}
+                    onChange={e => setProvinciaId(e.target.value)}
+                    disabled={loadingProvincias}
+                    className="w-full px-5 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition"
+                  >
+                    <option value="">{loadingProvincias ? 'Cargando...' : 'Seleccionar provincia'}</option>
+                    {provincias.map(p => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Ciudad / Localidad <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={localidadId}
+                    onChange={onLocalidadChange}
+                    disabled={!provinciaId || loadingLocalidades}
+                    className={`w-full px-5 py-3 rounded-lg border ${errorMsg && !formData.city.trim() ? 'border-red-500' : 'border-gray-200'} bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition`}
+                  >
+                    <option value="">
+                      {!provinciaId
+                        ? 'Elegí una provincia'
+                        : loadingLocalidades
+                          ? 'Cargando...'
+                          : 'Seleccionar localidad'}
+                    </option>
+                    {localidades.map(l => (
+                      <option key={l.id} value={l.id}>{l.nombre}</option>
+                    ))}
+                  </select>
                   {errorMsg && !formData.city.trim() && (
                     <span className="text-xs text-red-500 mt-1 block">La ciudad es obligatoria</span>
                   )}
@@ -382,6 +495,9 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                   )}
                 </div>
               </div>
+              {ubicacionError && (
+                <p className="mt-4 text-sm text-amber-700">{ubicacionError}</p>
+              )}
             </section>
 
             {/* DETALLES */}
@@ -477,49 +593,76 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
 
             {/* IMÁGENES */}
             <section>
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-2">
                 <UploadCloud className="h-6 w-6 text-indigo-500" />
-                <h2 className="text-2xl font-semibold text-gray-900 tracking-wide">Imágenes</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 tracking-wide">
+                  Imágenes {imagesRequired && <span className="text-red-500">*</span>}
+                </h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <label
-                  htmlFor="file-upload"
-                  className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-indigo-300 rounded-lg cursor-pointer bg-indigo-50 hover:bg-indigo-100 transition group"
-                >
-                  <UploadCloud className="h-10 w-10 text-indigo-400 mb-2 group-hover:scale-110 transition" />
-                  <span className="text-indigo-700 font-medium">Arrastrá imágenes o hacé click</span>
-                  <span className="text-xs text-gray-400 mt-1">Podés subir varias imágenes</span>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-                {imageFiles.length > 0 && (
-                  <div className="flex gap-4 flex-wrap items-start">
-                    {imageFiles.map((file, idx) => (
-                      <div key={idx} className="relative group">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`preview-${idx}`}
-                          className="w-24 h-24 rounded-lg object-cover border-2 border-indigo-200 shadow-md group-hover:scale-105 transition"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(idx)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-red-700 transition z-10"
-                          title="Eliminar imagen"
-                        >
-                          <XIcon className="w-4 h-4" />
-                        </button>
+              <p className="text-sm text-gray-500 mb-6">
+                La foto marcada como portada se verá en el listado de propiedades.
+              </p>
+              <label
+                htmlFor="file-upload"
+                className={`flex flex-col items-center justify-center w-full max-w-md h-40 border-2 border-dashed rounded-lg cursor-pointer bg-indigo-50 hover:bg-indigo-100 transition group mb-6 ${imagesMissing && errorMsg ? 'border-red-400' : 'border-indigo-300'}`}
+              >
+                <UploadCloud className="h-10 w-10 text-indigo-400 mb-2 group-hover:scale-110 transition" />
+                <span className="text-indigo-700 font-medium">Arrastrá imágenes o hacé click</span>
+                <span className="text-xs text-gray-400 mt-1">Podés subir varias (mínimo 1 al publicar)</span>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+              {imagesMissing && errorMsg && (
+                <p className="text-xs text-red-500 mb-4 -mt-4">Subí al menos una imagen</p>
+              )}
+              {imageFiles.length > 0 && (
+                <div className="flex gap-4 flex-wrap items-start">
+                  {imageFiles.map((file, idx) => {
+                    const isPortada = idx === 0;
+                    return (
+                      <div key={`${file.name}-${file.size}-${idx}`} className="relative group flex flex-col items-center gap-1.5">
+                        <div className="relative">
+                          <img
+                            src={previewUrls[idx]}
+                            alt={isPortada ? 'Portada' : `preview-${idx}`}
+                            className={`w-28 h-28 rounded-lg object-cover shadow-md transition ${isPortada ? 'border-4 border-indigo-600 ring-2 ring-indigo-200' : 'border-2 border-indigo-200 group-hover:scale-105'}`}
+                          />
+                          {isPortada && (
+                            <span className="absolute bottom-1 left-1 right-1 text-center text-[10px] font-semibold uppercase tracking-wide bg-indigo-600 text-white rounded px-1 py-0.5">
+                              Portada
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(idx)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-red-700 transition z-10"
+                            title="Eliminar imagen"
+                          >
+                            <XIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {!isPortada && (
+                          <button
+                            type="button"
+                            onClick={() => setAsPortada(idx)}
+                            className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium px-1 py-0.5 rounded hover:bg-indigo-50 transition"
+                            title="Usar como portada"
+                          >
+                            <Star className="w-3.5 h-3.5" />
+                            Usar como portada
+                          </button>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </section>
 
             {/* BOTÓN PRINCIPAL */}

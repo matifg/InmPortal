@@ -11,6 +11,7 @@ import {
   ChevronRight,
   SlidersHorizontal,
   RotateCcw,
+  X,
 } from 'lucide-react';
 import {
   EMPTY_PROPERTY_FILTERS,
@@ -21,6 +22,7 @@ import {
 
 const DEFAULT_PAGE_SIZE = 20;
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
+type SortOption = 'recent' | 'price-asc' | 'price-desc';
 
 export default function Home() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -32,6 +34,7 @@ export default function Home() {
 
   const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_PAGE_SIZE);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<SortOption>('recent');
 
   const listadoRef = useRef<HTMLElement>(null);
 
@@ -52,10 +55,14 @@ export default function Home() {
     fetchProperties();
   }, []);
 
-  const filteredProperties = useMemo(
-    () => filterProperties(properties, appliedFilters),
-    [properties, appliedFilters]
-  );
+  const filteredProperties = useMemo(() => {
+    const filtered = filterProperties(properties, appliedFilters);
+    if (sortBy === 'recent') return filtered;
+
+    return [...filtered].sort((a, b) =>
+      sortBy === 'price-asc' ? a.price - b.price : b.price - a.price
+    );
+  }, [properties, appliedFilters, sortBy]);
 
   const filtersActive = hasActiveFilters(appliedFilters);
   const canClearFilters =
@@ -77,6 +84,15 @@ export default function Home() {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setAppliedFilters({ ...draftFilters });
+      setCurrentPage(1);
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [draftFilters]);
 
   const handleFiltersChange = (patch: Partial<PropertySearchFilters>) => {
     setDraftFilters((prev) => ({ ...prev, ...patch }));
@@ -100,6 +116,32 @@ export default function Home() {
     setCurrentPage(1);
     scrollToListado();
   };
+
+  const clearSingleFilter = (key: keyof PropertySearchFilters) => {
+    setDraftFilters((prev) => ({ ...prev, [key]: '' }));
+    setAppliedFilters((prev) => ({ ...prev, [key]: '' }));
+    setCurrentPage(1);
+  };
+
+  const filterChips = [
+    appliedFilters.city
+      ? { key: 'city' as const, label: `Ciudad: ${appliedFilters.city}` }
+      : null,
+    appliedFilters.tipoId
+      ? {
+          key: 'tipoId' as const,
+          label:
+            appliedFilters.tipoId === '1'
+              ? 'Tipo: Casa'
+              : appliedFilters.tipoId === '2'
+                ? 'Tipo: Departamento'
+                : 'Tipo: Terreno',
+        }
+      : null,
+    appliedFilters.operacion
+      ? { key: 'operacion' as const, label: `Operación: ${appliedFilters.operacion}` }
+      : null,
+  ].filter(Boolean) as { key: keyof PropertySearchFilters; label: string }[];
 
   const rangeStart =
     filteredProperties.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -158,6 +200,22 @@ export default function Home() {
           )}
         </div>
 
+        {filtersActive && filterChips.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            {filterChips.map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => clearSingleFilter(chip.key)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+              >
+                {chip.label}
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ))}
+          </div>
+        )}
+
         {loading ? (
           <div className="flex flex-col justify-center items-center py-24 gap-3">
             <Loader2 className="h-9 w-9 text-indigo-600 animate-spin" />
@@ -200,7 +258,7 @@ export default function Home() {
         ) : (
           <>
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-slate-200/80 bg-white px-4 py-3.5 shadow-sm">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
                 <SlidersHorizontal className="h-4 w-4 text-indigo-500 shrink-0" />
                 <span className="font-medium text-slate-700">Mostrar</span>
                 <select
@@ -215,6 +273,17 @@ export default function Home() {
                   ))}
                 </select>
                 <span>por página</span>
+                <span className="mx-1 text-slate-300">|</span>
+                <span className="font-medium text-slate-700">Ordenar</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm text-slate-800 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 outline-none cursor-pointer"
+                >
+                  <option value="recent">Más recientes</option>
+                  <option value="price-asc">Menor precio</option>
+                  <option value="price-desc">Mayor precio</option>
+                </select>
               </div>
               <p className="text-sm text-slate-500 tabular-nums">
                 <span className="font-semibold text-slate-800">{rangeStart}</span>
