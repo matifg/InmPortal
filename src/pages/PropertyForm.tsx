@@ -19,6 +19,21 @@ function normalizeImageUrl(url: string): string {
   return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
+function normLocationName(s: string): string {
+  return s.trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+}
+
+type ValidationError = { message: string; fieldId: string };
+
+function focusField(fieldId: string) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (el instanceof HTMLElement && typeof el.focus === 'function') {
+    el.focus({ preventScroll: true });
+  }
+}
+
 function parseSavedImages(imagenes: unknown): SavedImage[] {
   if (!Array.isArray(imagenes)) return [];
   return [...imagenes]
@@ -177,12 +192,37 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [isDirty]);
 
+  const provinciaNombre = provincias.find((p) => p.id === provinciaId)?.nombre ?? '';
+  const localidadNombre =
+    localidades.find((l) => l.id === localidadId)?.nombre ?? formData.city;
+
+  const isBaraderoBsAs = useMemo(
+    () =>
+      normLocationName(provinciaNombre) === 'buenos aires' &&
+      normLocationName(localidadNombre) === 'baradero',
+    [provinciaNombre, localidadNombre]
+  );
+
+  useEffect(() => {
+    if (!isBaraderoBsAs && formData.zona) {
+      setFormData((prev) => ({ ...prev, zona: '' }));
+    }
+  }, [isBaraderoBsAs, formData.zona]);
+
   const onLocalidadChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     markDirty();
     const id = e.target.value;
     setLocalidadId(id);
-    const loc = localidades.find(l => l.id === id);
-    setFormData(prev => ({ ...prev, city: loc?.nombre ?? '' }));
+    const loc = localidades.find((l) => l.id === id);
+    const city = loc?.nombre ?? '';
+    const prov = provincias.find((p) => p.id === provinciaId)?.nombre ?? '';
+    const isBaradero =
+      normLocationName(prov) === 'buenos aires' && normLocationName(city) === 'baradero';
+    setFormData((prev) => ({
+      ...prev,
+      city,
+      zona: isBaradero ? prev.zona : '',
+    }));
   };
 
   const formatPrice = (value: string) => {
@@ -211,15 +251,27 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const validate = () => {
-    if (!formData.title.trim()) return 'El título es obligatorio';
-    if (!formData.price) return 'El precio es obligatorio';
-    if (!formData.city.trim()) return 'La ciudad es obligatoria';
-    if (!formData.address.trim()) return 'La dirección es obligatoria';
-    if (!formData.zona) return 'La zona es obligatoria';
-    if (!isEdit && imageFiles.length === 0) return 'Subí al menos una imagen de la propiedad';
+  const validate = (): ValidationError | null => {
+    if (!formData.title.trim()) {
+      return { message: 'El título es obligatorio', fieldId: 'field-title' };
+    }
+    if (!formData.price) {
+      return { message: 'El precio es obligatorio', fieldId: 'field-price' };
+    }
+    if (!formData.city.trim()) {
+      return { message: 'La localidad es obligatoria', fieldId: 'field-localidad' };
+    }
+    if (!formData.address.trim()) {
+      return { message: 'La dirección es obligatoria', fieldId: 'field-address' };
+    }
+    if (isBaraderoBsAs && !formData.zona) {
+      return { message: 'La zona es obligatoria', fieldId: 'field-zona' };
+    }
+    if (!isEdit && imageFiles.length === 0) {
+      return { message: 'Subí al menos una imagen de la propiedad', fieldId: 'field-images' };
+    }
     if (isEdit && savedImages.length === 0 && imageFiles.length === 0) {
-      return 'La propiedad debe tener al menos una imagen';
+      return { message: 'La propiedad debe tener al menos una imagen', fieldId: 'field-images' };
     }
     return null;
   };
@@ -350,10 +402,11 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
 
     const token = localStorage.getItem('token');
 
-    const error = validate();
-    if (error) {
-      setErrorMsg(error);
+    const validationError = validate();
+    if (validationError) {
+      setErrorMsg(validationError.message);
       setLoading(false);
+      focusField(validationError.fieldId);
       return;
     }
 
@@ -389,7 +442,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         estado: formData.status,
         operacion: formData.operation,
         moneda: formData.currency,
-        zona: formData.zona,
+        zona: isBaraderoBsAs ? formData.zona || null : null,
       };
 
       let propiedad;
@@ -545,6 +598,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                     Título <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="field-title"
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
@@ -566,6 +620,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                   </label>
                   <div className="flex gap-2">
                     <input
+                      id="field-price"
                       name="price"
                       value={formData.price}
                       onChange={handleChange}
@@ -634,6 +689,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                     Localidad <span className="text-red-500">*</span>
                   </label>
                   <select
+                    id="field-localidad"
                     value={localidadId}
                     onChange={onLocalidadChange}
                     disabled={!provinciaId || loadingLocalidades}
@@ -657,35 +713,39 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                     <span className="text-xs text-red-500 mt-1 block">La localidad es obligatoria</span>
                   )}
                 </div>
-                <div className="min-w-0">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Zona <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="zona"
-                    value={formData.zona}
-                    onChange={handleChange}
-                    className={`w-full min-w-0 px-4 py-3 rounded-lg border text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500/20 transition ${
-                      errorMsg && !formData.zona
-                        ? 'border-red-500'
-                        : 'border-slate-200 bg-white focus:border-indigo-500'
-                    }`}
-                  >
-                    <option value="">Elegir zona</option>
-                    <option value="Colonia Suiza">Colonia Suiza</option>
-                    <option value="Centro">Centro</option>
-                    <option value="Estacion">Estacion</option>
-                    <option value="Costa">Costa</option>
-                  </select>
-                  {errorMsg && !formData.zona && (
-                    <span className="text-xs text-red-500 mt-1 block">La zona es obligatoria</span>
-                  )}
-                </div>
+                {isBaraderoBsAs && (
+                  <div className="min-w-0">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Zona <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="field-zona"
+                      name="zona"
+                      value={formData.zona}
+                      onChange={handleChange}
+                      className={`w-full min-w-0 px-4 py-3 rounded-lg border text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500/20 transition ${
+                        errorMsg && !formData.zona
+                          ? 'border-red-500'
+                          : 'border-slate-200 bg-white focus:border-indigo-500'
+                      }`}
+                    >
+                      <option value="">Elegir zona</option>
+                      <option value="Colonia Suiza">Colonia Suiza</option>
+                      <option value="Centro">Centro</option>
+                      <option value="Estacion">Estacion</option>
+                      <option value="Costa">Costa</option>
+                    </select>
+                    {errorMsg && !formData.zona && (
+                      <span className="text-xs text-red-500 mt-1 block">La zona es obligatoria</span>
+                    )}
+                  </div>
+                )}
                 <div className="min-w-0 sm:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Dirección <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="field-address"
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
@@ -795,7 +855,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
               </div>
             </section>
 
-            <section className={sectionCard}>
+            <section id="field-images" className={sectionCard}>
               <h2 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
                 <UploadCloud className="h-5 w-5 text-indigo-500" />
                 Imágenes {imagesRequired && <span className="text-red-500">*</span>}

@@ -6,7 +6,6 @@ import {
   Menu,
   X,
   Building2,
-  PlusCircle,
   LayoutDashboard,
   ShieldCheck,
   UserCircle,
@@ -95,19 +94,10 @@ export default function Navbar() {
         location.pathname.startsWith('/propiedad/editar');
 
       return (
-        <>
-          <Link to="/dashboard" className={navLinkClass(panelActive)}>
-            <LayoutDashboard className="h-5 w-5" />
-            Mis propiedades
-          </Link>
-          <Link
-            to="/dashboard/nueva-propiedad"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md shadow-black/20 hover:from-emerald-400 hover:to-green-500 transition-all duration-200"
-          >
-            <PlusCircle className="h-5 w-5" />
-            Publicar
-          </Link>
-        </>
+        <Link to="/dashboard" className={navLinkClass(panelActive)}>
+          <LayoutDashboard className="h-5 w-5" />
+          Mis propiedades
+        </Link>
       );
     }
 
