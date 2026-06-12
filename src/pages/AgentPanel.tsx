@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Property } from '../types';
-import { Plus, Edit, Trash2, Loader2, MapPin, ExternalLink, Home, Search, X, ChevronDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, MapPin, ExternalLink, Home, Search, X, ChevronDown, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MembresiaBanner from '../components/MembresiaBanner';
 import { readMembresiaFromStorage, syncMembresiaFromAgentResponse } from '../lib/membresia';
@@ -316,6 +316,12 @@ export default function AgentPanel() {
                 <div className="flex flex-col items-end gap-3 min-w-[200px]">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl font-extrabold text-indigo-700">{formatPrice(p.price, p.currency)}</span>
+                    {p.ocultarPrecio && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600" title="Precio oculto al público">
+                        <EyeOff className="h-3.5 w-3.5" />
+                        Oculto
+                      </span>
+                    )}
                     <StatusBadge status={p.status} />
                   </div>
                   <div className="flex gap-2 mt-1">

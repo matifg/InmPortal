@@ -379,12 +379,16 @@ export default function PropertyDetail() {
           </div>
           <div className="lg:text-right shrink-0">
             <p className="text-3xl sm:text-4xl font-bold text-indigo-600">
-              {formatPrice(property.price, property.currency)}
-              {property.status === 'Alquiler' && (
+              {property.ocultarPrecio
+                ? 'Consultar precio'
+                : formatPrice(property.price, property.currency)}
+              {!property.ocultarPrecio && property.status === 'Alquiler' && (
                 <span className="text-lg text-slate-500 font-normal"> /mes</span>
               )}
             </p>
-            <p className="text-sm text-slate-500 mt-1">{currencyInfo.label}</p>
+            {!property.ocultarPrecio && (
+              <p className="text-sm text-slate-500 mt-1">{currencyInfo.label}</p>
+            )}
           </div>
         </div>
 
@@ -480,7 +484,9 @@ export default function PropertyDetail() {
             <div className="min-w-0 flex-1">
               <p className="text-xs text-slate-500 truncate">{property.title}</p>
               <p className="text-lg font-bold text-indigo-600 leading-tight">
-                {formatPrice(property.price, property.currency)}
+                {property.ocultarPrecio
+                  ? 'Consultar precio'
+                  : formatPrice(property.price, property.currency)}
               </p>
             </div>
             <a

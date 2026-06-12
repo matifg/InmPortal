@@ -52,8 +52,12 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         {/* Content */}
         <div className="p-5 flex flex-col flex-grow">
           <div className="text-2xl font-bold text-indigo-700 mb-2">
-            {formatPrice(property.price, property.currency)}
-            {property.status === 'Alquiler' && <span className="text-sm text-slate-500 font-normal">/mes</span>}
+            {property.ocultarPrecio
+              ? 'Consultar precio'
+              : formatPrice(property.price, property.currency)}
+            {!property.ocultarPrecio && property.status === 'Alquiler' && (
+              <span className="text-sm text-slate-500 font-normal">/mes</span>
+            )}
           </div>
           
           <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-1 group-hover:text-indigo-600 transition-colors">

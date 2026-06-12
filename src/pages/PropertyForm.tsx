@@ -51,9 +51,9 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
+  const [gridItems, setGridItems] = useState<ImageGridItem[]>([]);
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
+  const newImageKeyRef = useRef(0);
 
   const { membresiaActiva } = useMembresia();
 
@@ -83,6 +83,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     currency: 'USD',
     operation: 'Venta',
     zona: '',
+    ocultarPrecio: false,
   });
 
   useEffect(() => {
@@ -102,9 +103,11 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         currency: initialData.moneda || 'USD',
         operation: initialData.operacion || 'Venta',
         zona: initialData.zona || '',
+        ocultarPrecio: initialData.ocultarPrecio ?? false,
       });
-      setSavedImages(parseSavedImages(initialData.imagenes));
-      setImageFiles([]);
+      setGridItems(
+        parseSavedImages(initialData.imagenes).map((data) => ({ type: 'saved' as const, data }))
+      );
     }
   }, [initialData]);
 
@@ -237,8 +240,13 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
   const markDirty = () => setIsDirty(true);
 
   const handleChange = (e: any) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     markDirty();
+
+    if (type === 'checkbox') {
+      setFormData((prev) => ({ ...prev, [name]: checked }));
+      return;
+    }
 
     if (name === 'price') {
       setFormData((prev) => ({
@@ -267,11 +275,13 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     if (isBaraderoBsAs && !formData.zona) {
       return { message: 'La zona es obligatoria', fieldId: 'field-zona' };
     }
-    if (!isEdit && imageFiles.length === 0) {
-      return { message: 'Subí al menos una imagen de la propiedad', fieldId: 'field-images' };
-    }
-    if (isEdit && savedImages.length === 0 && imageFiles.length === 0) {
-      return { message: 'La propiedad debe tener al menos una imagen', fieldId: 'field-images' };
+    if (gridItems.length === 0) {
+      return {
+        message: isEdit
+          ? 'La propiedad debe tener al menos una imagen'
+          : 'Subí al menos una imagen de la propiedad',
+        fieldId: 'field-images',
+      };
     }
     return null;
   };
@@ -298,8 +308,53 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     }
   };
 
-  const removeNewImage = (idx: number) => {
-    setImageFiles(files => files.filter((_, i) => i !== idx));
+  // Persiste el orden de todas las imágenes: intenta el endpoint bulk y,
+  // si no está disponible, cae a un PUT por imagen.
+  const persistImageOrder = async (
+    propiedadId: string,
+    orden: { id: string; orden: number }[],
+    token: string | null
+  ): Promise<boolean> => {
+    const jsonHeaders = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/imagenes/propiedad/${propiedadId}/orden`,
+        { method: 'PUT', headers: jsonHeaders, body: JSON.stringify(orden) }
+      );
+      if (res.ok) return true;
+      if (res.status !== 404 && res.status !== 405) return false;
+    } catch {
+      // bulk no disponible, probar por imagen
+    }
+
+    const results = await Promise.all(
+      orden.map((o) =>
+        fetch(`${import.meta.env.VITE_API_URL}/imagenes/${o.id}`, {
+          method: 'PUT',
+          headers: jsonHeaders,
+          body: JSON.stringify({ orden: o.orden }),
+        })
+          .then((r) => r.ok)
+          .catch(() => false)
+      )
+    );
+    return results.every(Boolean);
+  };
+
+  const removeNewImage = (key: string) => {
+    setGridItems((items) =>
+      items.filter((i) => {
+        if (i.type === 'new' && i.data.key === key) {
+          URL.revokeObjectURL(i.data.preview);
+          return false;
+        }
+        return true;
+      })
+    );
   };
 
   const removeSavedImage = async (imageId: string) => {
@@ -311,7 +366,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error('delete failed');
-      setSavedImages(prev => prev.filter(img => img.id !== imageId));
+      setGridItems((prev) => prev.filter((i) => !(i.type === 'saved' && i.data.id === imageId)));
       markDirty();
     } catch {
       setErrorMsg('No se pudo eliminar la imagen');
@@ -321,52 +376,31 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     }
   };
 
-  const previewUrls = useMemo(
-    () => imageFiles.map((file) => URL.createObjectURL(file)),
-    [imageFiles]
-  );
-
+  const gridItemsRef = useRef(gridItems);
+  gridItemsRef.current = gridItems;
   useEffect(() => {
-    return () => previewUrls.forEach((url) => URL.revokeObjectURL(url));
-  }, [previewUrls]);
-
-  const imageGridItems: ImageGridItem[] = useMemo(
-    () => [
-      ...savedImages.map((data) => ({ type: 'saved' as const, data })),
-      ...imageFiles.map((file, i) => ({
-        type: 'new' as const,
-        data: {
-          file,
-          preview: previewUrls[i],
-          key: `${file.name}-${file.size}-${i}`,
-        },
-      })),
-    ],
-    [savedImages, imageFiles, previewUrls]
-  );
+    return () => {
+      gridItemsRef.current.forEach((i) => {
+        if (i.type === 'new') URL.revokeObjectURL(i.data.preview);
+      });
+    };
+  }, []);
 
   const coverPreviewUrl = useMemo(() => {
-    if (savedImages[0]?.url) return savedImages[0].url;
-    if (previewUrls[0]) return previewUrls[0];
-    return null;
-  }, [savedImages, previewUrls]);
-
-  const applyImageOrder = (items: ImageGridItem[]) => {
-    setSavedImages(
-      items.filter((i) => i.type === 'saved').map((i) => (i as { type: 'saved'; data: SavedImage }).data)
-    );
-    setImageFiles(
-      items.filter((i) => i.type === 'new').map((i) => (i as { type: 'new'; data: { file: File } }).data.file)
-    );
-  };
+    const first = gridItems[0];
+    if (!first) return null;
+    return first.type === 'saved' ? first.data.url : first.data.preview;
+  }, [gridItems]);
 
   const reorderImages = (from: number, to: number) => {
     if (from === to) return;
     markDirty();
-    const items = [...imageGridItems];
-    const [moved] = items.splice(from, 1);
-    items.splice(to, 0, moved);
-    applyImageOrder(items);
+    setGridItems((prev) => {
+      const items = [...prev];
+      const [moved] = items.splice(from, 1);
+      items.splice(to, 0, moved);
+      return items;
+    });
   };
 
   const setAsPortada = (globalIdx: number) => {
@@ -375,22 +409,30 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
 
   const removeImageAt = (globalIdx: number) => {
     markDirty();
-    const item = imageGridItems[globalIdx];
+    const item = gridItems[globalIdx];
     if (!item) return;
     if (item.type === 'saved') {
       removeSavedImage(item.data.id);
     } else {
-      const fileIndex = globalIdx - savedImages.length;
-      removeNewImage(fileIndex);
+      removeNewImage(item.data.key);
     }
   };
 
   const addFiles = useCallback((files: File[]) => {
     const images = files.filter((f) => f.type.startsWith('image/'));
-    if (images.length) {
-      markDirty();
-      setImageFiles((prev) => [...prev, ...images]);
-    }
+    if (!images.length) return;
+    markDirty();
+    setGridItems((prev) => [
+      ...prev,
+      ...images.map((file) => ({
+        type: 'new' as const,
+        data: {
+          file,
+          preview: URL.createObjectURL(file),
+          key: `new-${newImageKeyRef.current++}`,
+        },
+      })),
+    ]);
   }, []);
 
   const handleSubmit = async (e: any) => {
@@ -410,19 +452,15 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       return;
     }
 
-    let imageUrls: string[] = [];
-    if (imageFiles.length > 0) {
-      for (const file of imageFiles) {
-        try {
-          const url = await uploadToSupabase(file);
-          if (url) imageUrls.push(url);
-        } catch (err) {
-          console.error('[PropertyForm] Error subiendo una imagen:', err);
-        }
-      }
+    // Subir las imágenes nuevas a Supabase (mapeadas por key para respetar el orden de la grilla)
+    const uploadedUrlByKey = new Map<string, string>();
+    for (const item of gridItems) {
+      if (item.type !== 'new') continue;
+      const url = await uploadToSupabase(item.data.file);
+      if (url) uploadedUrlByKey.set(item.data.key, url);
     }
 
-    if (!isEdit && imageUrls.length === 0) {
+    if (!isEdit && uploadedUrlByKey.size === 0) {
       setErrorMsg('No se pudieron subir las imágenes. Intentá de nuevo.');
       setLoading(false);
       return;
@@ -443,6 +481,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         operacion: formData.operation,
         moneda: formData.currency,
         zona: isBaraderoBsAs ? formData.zona || null : null,
+        ocultarPrecio: formData.ocultarPrecio,
       };
 
       let propiedad;
@@ -467,48 +506,58 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       }
 
       const propiedadId = propiedad?.id ?? initialData?.id;
+      let imageError = false;
 
-      if (propiedadId && isEdit) {
-        for (let i = 0; i < savedImages.length; i++) {
+      if (propiedadId) {
+        const jsonHeaders = {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+
+        // Crear las imágenes nuevas con su orden según la posición en la grilla
+        // y armar el orden final de TODAS las imágenes (guardadas + nuevas)
+        const ordenFinal: { id: string; orden: number }[] = [];
+        for (let i = 0; i < gridItems.length; i++) {
+          const item = gridItems[i];
+          const orden = i + 1;
+
+          if (item.type === 'saved') {
+            ordenFinal.push({ id: item.data.id, orden });
+            continue;
+          }
+
+          const url = uploadedUrlByKey.get(item.data.key);
+          if (!url) {
+            imageError = true;
+            continue;
+          }
           try {
-            await fetch(`${import.meta.env.VITE_API_URL}/imagenes/${savedImages[i].id}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-              body: JSON.stringify({ orden: i + 1 }),
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/imagenes`, {
+              method: 'POST',
+              headers: jsonHeaders,
+              body: JSON.stringify({ url, propiedad: { id: propiedadId }, orden }),
             });
+            if (!res.ok) throw new Error('post imagen failed');
+            const created = await res.json();
+            if (created?.id) ordenFinal.push({ id: String(created.id), orden });
           } catch {
-            // orden opcional si el back no expone PUT
+            imageError = true;
           }
         }
-      }
 
-      if (imageUrls.length > 0 && propiedadId) {
-        const ordenBase = isEdit ? savedImages.length : 0;
-        for (let i = 0; i < imageUrls.length; i++) {
-          try {
-            await fetch(`${import.meta.env.VITE_API_URL}/imagenes`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-              body: JSON.stringify({
-                url: imageUrls[i],
-                propiedad: { id: propiedadId },
-                orden: ordenBase + i + 1,
-              }),
-            });
-          } catch {
-            // Continúa con las demás imágenes
-          }
+        // Persistir el orden final (solo necesario en edición; en alta el POST ya lleva el orden)
+        if (isEdit && ordenFinal.length > 0) {
+          const ok = await persistImageOrder(propiedadId, ordenFinal, token);
+          if (!ok) imageError = true;
         }
       }
 
       setIsDirty(false);
-      toast.success(isEdit ? 'Propiedad actualizada' : 'Propiedad publicada');
+      if (imageError) {
+        toast.error('Se guardó la propiedad, pero algunas imágenes no se actualizaron');
+      } else {
+        toast.success(isEdit ? 'Propiedad actualizada' : 'Propiedad publicada');
+      }
       navigate('/dashboard');
     } catch (err) {
       setErrorMsg('Error al guardar propiedad');
@@ -530,7 +579,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
   };
 
   const imagesRequired = !isEdit;
-  const totalImages = savedImages.length + imageFiles.length;
+  const totalImages = gridItems.length;
   const imagesMissing = imagesRequired && totalImages === 0;
 
   function Tooltip({ text }: { text: string }) {
@@ -640,6 +689,16 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                   {errorMsg && !formData.price && (
                     <span className="text-xs text-red-500 mt-1 block">El precio es obligatorio</span>
                   )}
+                  <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="ocultarPrecio"
+                      checked={formData.ocultarPrecio}
+                      onChange={handleChange}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-slate-600">Ocultar precio para el público</span>
+                  </label>
                 </div>
               </div>
               <div className="mt-8">
@@ -900,7 +959,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
               )}
               {totalImages > 0 && (
                 <FormImageGrid
-                  items={imageGridItems}
+                  items={gridItems}
                   deletingId={deletingImageId}
                   onReorder={reorderImages}
                   onRemove={removeImageAt}
@@ -914,6 +973,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
           <PropertyFormPreview
             title={formData.title}
             price={formData.price}
+            ocultarPrecio={formData.ocultarPrecio}
             currency={formData.currency}
             city={formData.city}
             address={formData.address}

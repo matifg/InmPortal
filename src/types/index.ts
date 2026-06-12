@@ -14,6 +14,7 @@ export interface Property {
   title: string;
   description: string;
   price: number;
+  ocultarPrecio?: boolean;
   city: string;
   address: string;
   propertyType: PropertyType;

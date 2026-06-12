@@ -39,6 +39,7 @@ function mapPropertyItem(item: any): Property {
     title: item.titulo,
     description: item.descripcion,
     price: item.precio,
+    ocultarPrecio: item.ocultarPrecio ?? false,
     city: item.ciudad,
     address: item.direccion,
     propertyType: mapTipoId(item.tipoId),

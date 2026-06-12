@@ -3,6 +3,7 @@ import { MapPin, Bed, Bath, Square } from 'lucide-react';
 interface PropertyFormPreviewProps {
   title: string;
   price: string;
+  ocultarPrecio?: boolean;
   currency: string;
   city: string;
   address: string;
@@ -16,6 +17,7 @@ interface PropertyFormPreviewProps {
 export default function PropertyFormPreview({
   title,
   price,
+  ocultarPrecio = false,
   currency,
   city,
   address,
@@ -25,9 +27,11 @@ export default function PropertyFormPreview({
   bathrooms,
   area,
 }: PropertyFormPreviewProps) {
-  const displayPrice = price
-    ? `${price} ${currency === 'USD' ? 'USD' : 'ARS'}`
-    : '—';
+  const displayPrice = ocultarPrecio
+    ? 'Consultar precio'
+    : price
+      ? `${price} ${currency === 'USD' ? 'USD' : 'ARS'}`
+      : '—';
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">

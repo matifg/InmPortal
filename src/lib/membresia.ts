@@ -1,5 +1,4 @@
 const STORAGE_KEY = 'membresiaActiva';
-export const MEMBRESIA_BANNER_DISMISS_KEY = 'membresia_banner_dismissed';
 
 export function readMembresiaFromStorage(): boolean {
   const mem = localStorage.getItem(STORAGE_KEY);
@@ -13,9 +12,6 @@ export function readMembresiaFromStorage(): boolean {
 
 export function persistMembresiaActiva(active: boolean): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(active));
-  if (active) {
-    sessionStorage.removeItem(MEMBRESIA_BANNER_DISMISS_KEY);
-  }
 }
 
 /** Lee membresiaActiva desde /agentes/me u objetos anidados. */
