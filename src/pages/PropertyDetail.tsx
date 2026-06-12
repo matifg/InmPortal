@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Property, AgentContact } from '../types';
 import { phoneForTel, phoneForWhatsApp } from '../lib/agentContact';
@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  Pencil,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -143,9 +144,11 @@ function ContactCard({
 
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [property, setProperty] = useState<Property | null>(null);
   const [similar, setSimilar] = useState<Property[]>([]);
   const [agent, setAgent] = useState<AgentContact | null>(null);
+  const [currentAgentId, setCurrentAgentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [descExpanded, setDescExpanded] = useState(false);
   const [contactForm, setContactForm] = useState({
@@ -204,6 +207,36 @@ export default function PropertyDetail() {
 
     fetchProperty();
   }, [id]);
+
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    const token = localStorage.getItem('token');
+    if (role !== 'AGENTE' || !token) {
+      setCurrentAgentId(null);
+      return;
+    }
+
+    let cancelled = false;
+    fetch(`${import.meta.env.VITE_API_URL}/agentes/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.id) setCurrentAgentId(String(data.id));
+      })
+      .catch(() => {
+        if (!cancelled) setCurrentAgentId(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const canEdit =
+    !!property &&
+    !!currentAgentId &&
+    String(property.agentId) === currentAgentId;
 
   const getCurrencyInfo = (currency?: string) => {
     if (!currency) return { symbol: '$', label: 'Pesos' };
@@ -344,14 +377,26 @@ export default function PropertyDetail() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
           </Link>
-          <button
-            type="button"
-            onClick={handleShare}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm"
-          >
-            <Share2 className="h-4 w-4" />
-            Compartir
-          </button>
+          <div className="flex items-center gap-2">
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => navigate(`/propiedad/editar/${property.id}`)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition-colors shadow-sm"
+              >
+                <Pencil className="h-4 w-4" />
+                Editar
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleShare}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm"
+            >
+              <Share2 className="h-4 w-4" />
+              Compartir
+            </button>
+          </div>
         </div>
 
         <PropertyGallery images={images} />

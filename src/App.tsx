@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 
@@ -12,18 +12,20 @@ import EditProperty from './pages/EditProperty'; // 🔥 IMPORTANTE
 import AdminDashboard from './pages/AdminDashboard';
 
 import ProtectedRoute from './components/ProtectedRoute';
+import SessionManager from './components/SessionManager';
 
-export default function App() {
+const AUTH_PATHS = ['/login', '/register'];
+
+function AppLayout() {
+  const location = useLocation();
+  const isAuthPage = AUTH_PATHS.includes(location.pathname);
+
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50 font-sans text-gray-900 flex flex-col">
-        
-        <Toaster position="top-right" />
-
-        <Navbar />
-
-        <div className="flex-grow">
-          <Routes>
+    <div className={`font-sans text-gray-900 flex flex-col ${isAuthPage ? 'h-dvh overflow-hidden' : 'min-h-screen bg-gray-50'}`}>
+      <Toaster position="top-right" />
+      {!isAuthPage && <Navbar />}
+      <div className={isAuthPage ? 'flex-1 min-h-0' : 'flex-grow'}>
+        <Routes>
 
             {/* PUBLICAS */}
             <Route path="/" element={<Home />} />
@@ -64,10 +66,17 @@ export default function App() {
               </ProtectedRoute>
             } />
 
-          </Routes>
-        </div>
-
+        </Routes>
       </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <SessionManager />
+      <AppLayout />
     </Router>
   );
 }

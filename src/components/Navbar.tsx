@@ -11,6 +11,7 @@ import {
   UserCircle,
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { clearSession } from '../lib/auth';
 
 const navLinkBase =
   'flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all duration-200';
@@ -49,7 +50,7 @@ export default function Navbar() {
   }, [dropdown]);
 
   const logout = () => {
-    localStorage.clear();
+    clearSession();
     setToken(null);
     setRole(null);
     setDropdown(false);

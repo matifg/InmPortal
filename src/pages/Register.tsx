@@ -1,71 +1,119 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Search, Building2 } from 'lucide-react';
+
+type RegisterRole = 'CLIENTE' | 'AGENTE';
+
+const ROLE_CONFIG = {
+  CLIENTE: {
+    title: 'Creá tu cuenta',
+    subtitle: 'Guardá favoritos y contactá agentes',
+    image: '/casa-login.jpg',
+    overlay: 'bg-emerald-950/75',
+    tabActive: 'bg-emerald-600 text-white shadow',
+    button: 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500/40',
+    inputFocus: 'focus:border-emerald-400 focus:ring-emerald-500/30',
+    link: 'text-emerald-600',
+    submitLabel: 'Crear cuenta gratis',
+  },
+  AGENTE: {
+    title: 'Publicá como agente',
+    subtitle: 'Gestioná tus propiedades desde un panel',
+    image: '/casa-register.png',
+    overlay: 'bg-indigo-950/75',
+    tabActive: 'bg-indigo-600 text-white shadow',
+    button: 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500/40',
+    inputFocus: 'focus:border-indigo-400 focus:ring-indigo-500/30',
+    link: 'text-indigo-600',
+    submitLabel: 'Crear cuenta de agente',
+  },
+} as const;
 
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [form, setForm] = useState({
     nombre: '',
     apellido: '',
     email: '',
     telefono: '',
-    password: ''
+    password: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showAgentConfirm, setShowAgentConfirm] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({
     nombre: '',
     apellido: '',
     email: '',
     telefono: '',
-    password: ''
+    password: '',
   });
 
-  // 1. Estado de rol
-  const [role, setRole] = useState<'CLIENTE' | 'AGENTE'>('CLIENTE');
+  const [role, setRole] = useState<RegisterRole>('CLIENTE');
+  const cfg = ROLE_CONFIG[role];
 
-  // Validación en tiempo real
+  useEffect(() => {
+    const defaultRole = (location.state as { defaultRole?: RegisterRole })?.defaultRole;
+    if (defaultRole === 'AGENTE' || defaultRole === 'CLIENTE') {
+      setRole(defaultRole);
+    }
+  }, [location.state]);
+
   const validateField = (name: string, value: string) => {
-    let error = '';
+    let fieldError = '';
+    if (name === 'nombre' || name === 'apellido') {
+      if (!value.trim()) fieldError = 'Obligatorio';
+      else if (value.trim().length < 2) fieldError = 'Mín. 2 caracteres';
+    }
     if (name === 'email') {
-      if (!value) error = 'El email es obligatorio';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Ingresá un email válido';
+      if (!value) fieldError = 'Obligatorio';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) fieldError = 'Email inválido';
+    }
+    if (name === 'telefono') {
+      if (!value.trim()) fieldError = 'Obligatorio';
+      else if (!/^[\d\s+\-()]{8,}$/.test(value.trim())) fieldError = 'Teléfono inválido';
     }
     if (name === 'password') {
-      if (!value) error = 'La contraseña es obligatoria';
-      else if (value.length < 6) error = 'Debe tener al menos 6 caracteres';
+      if (!value) fieldError = 'Obligatorio';
+      else if (value.length < 6) fieldError = 'Mín. 6 caracteres';
     }
-    setFieldErrors(prev => ({ ...prev, [name]: error }));
+    setFieldErrors((prev) => ({ ...prev, [name]: fieldError }));
+    return fieldError;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
     validateField(name, value);
   };
 
   const validate = () => {
     let valid = true;
+    const errors: typeof fieldErrors = { nombre: '', apellido: '', email: '', telefono: '', password: '' };
+
     Object.entries(form).forEach(([name, value]) => {
-      validateField(name, value);
-      if (value === '' || fieldErrors[name as keyof typeof fieldErrors]) valid = false;
+      const fieldError = validateField(name, value);
+      errors[name as keyof typeof errors] = fieldError;
+      if (fieldError) valid = false;
     });
+
+    setFieldErrors(errors);
     return valid;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!validate()) return;
+  const submitRegistration = async () => {
     setLoading(true);
+    setError('');
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // 3. Usar rol dinámico
-        body: JSON.stringify({ ...form, rol: role })
+        body: JSON.stringify({ ...form, rol: role }),
       });
       if (res.ok) {
-        navigate('/login');
+        navigate('/login', { state: { registerSuccess: true } });
       } else {
         const data = await res.json();
         setError(data.message || 'Error al registrar');
@@ -74,166 +122,146 @@ export default function Register() {
       setError('Error de red');
     } finally {
       setLoading(false);
+      setShowAgentConfirm(false);
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!validate()) return;
+
+    if (role === 'AGENTE') {
+      setShowAgentConfirm(true);
+      return;
+    }
+
+    await submitRegistration();
+  };
+
+  const inputClass = `w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder-slate-400 outline-none transition text-sm ring-2 ring-transparent ${cfg.inputFocus}`;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 relative">
-      {/* Imagen de fondo */}
-      <div className="absolute inset-0 z-0">
-        <img
-          src="/casa-register.png"
-          alt="Fondo registro"
-          className="w-full h-full object-cover opacity-40"
-          draggable={false}
-        />
-        <div className="absolute inset-0 bg-black/40" />
-      </div>
-      {/* Card */}
-      <div className="relative z-10 w-full max-w-lg mx-auto bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-indigo-700/20 px-10 py-12 flex flex-col gap-8">
-        {/* 2. Selector de rol */}
-        <div className="flex flex-col gap-2 mb-2">
-          <div className="flex justify-center gap-2">
+    <div className="relative h-full w-full overflow-hidden">
+      <div
+        className="absolute inset-0 bg-cover bg-center transition-all duration-500"
+        style={{ backgroundImage: `url('${cfg.image}')` }}
+      />
+      <div className={`absolute inset-0 transition-colors duration-500 ${cfg.overlay}`} />
+
+      {showAgentConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">¿Crear cuenta de agente?</h3>
+            <p className="text-slate-600 text-sm mb-4">
+              Estás registrándote como <strong>agente inmobiliario</strong>. Para publicar propiedades
+              necesitás activar una membresía.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAgentConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={submitRegistration}
+                disabled={loading}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition disabled:opacity-70"
+              >
+                {loading ? 'Creando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="relative z-10 h-full flex items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-2xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-6 sm:px-8 py-5 sm:py-6 flex flex-col gap-3 sm:gap-4">
+          <div className="flex gap-1.5 p-1 bg-slate-100 rounded-xl">
             <button
               type="button"
-              className={`px-4 py-2 rounded-xl font-semibold transition-all duration-150
-                ${role === 'CLIENTE'
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'bg-white/10 text-indigo-200 hover:bg-white/20'}
-              `}
+              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+                role === 'CLIENTE' ? cfg.tabActive : 'text-slate-600 hover:bg-white'
+              }`}
               onClick={() => setRole('CLIENTE')}
             >
+              <Search className="h-3.5 w-3.5" />
               Buscar propiedades
             </button>
             <button
               type="button"
-              className={`px-4 py-2 rounded-xl font-semibold transition-all duration-150
-                ${role === 'AGENTE'
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'bg-white/10 text-indigo-200 hover:bg-white/20'}
-              `}
+              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+                role === 'AGENTE' ? cfg.tabActive : 'text-slate-600 hover:bg-white'
+              }`}
               onClick={() => setRole('AGENTE')}
             >
+              <Building2 className="h-3.5 w-3.5" />
               Publicar como agente
             </button>
           </div>
-          <div className="text-center text-indigo-200 text-sm mt-1 min-h-[20px]">
-            {role === 'CLIENTE'
-              ? 'Crea una cuenta para guardar favoritos y contactar agentes.'
-              : 'Crea una cuenta de agente para publicar y gestionar propiedades.'}
+
+          <div className="text-center">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">{cfg.title}</h2>
+            <p className="text-slate-500 text-xs sm:text-sm mt-0.5">{cfg.subtitle}</p>
           </div>
-        </div>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-white text-center mb-1 leading-tight drop-shadow">
-          Publicá tus propiedades en minutos
-        </h2>
-        <p className="text-gray-300 text-center mb-6 text-lg">
-          Gestioná todo desde un solo lugar
-        </p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* Datos personales */}
-          <div>
-            <div className="text-gray-400 font-semibold mb-2">Datos personales</div>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  name="nombre"
-                  placeholder="Nombre"
-                  value={form.nombre}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-gray-400 focus:bg-white/10 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all duration-200 shadow-sm"
-                />
-                {fieldErrors.nombre && (
-                  <div className="text-red-400 text-xs mt-1">{fieldErrors.nombre}</div>
-                )}
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <input type="text" name="nombre" placeholder="Nombre" value={form.nombre} onChange={handleChange} className={inputClass} />
+                {fieldErrors.nombre && <p className="text-red-500 text-xs mt-0.5">{fieldErrors.nombre}</p>}
               </div>
-              <div className="flex-1">
-                <input
-                  type="text"
-                  name="apellido"
-                  placeholder="Apellido"
-                  value={form.apellido}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-gray-400 focus:bg-white/10 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all duration-200 shadow-sm"
-                />
-                {fieldErrors.apellido && (
-                  <div className="text-red-400 text-xs mt-1">{fieldErrors.apellido}</div>
-                )}
+              <div>
+                <input type="text" name="apellido" placeholder="Apellido" value={form.apellido} onChange={handleChange} className={inputClass} />
+                {fieldErrors.apellido && <p className="text-red-500 text-xs mt-0.5">{fieldErrors.apellido}</p>}
+              </div>
+              <div>
+                <input type="email" name="email" placeholder="Email" value={form.email} onChange={handleChange} className={inputClass} />
+                {fieldErrors.email && <p className="text-red-500 text-xs mt-0.5">{fieldErrors.email}</p>}
+              </div>
+              <div>
+                <input type="text" name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} className={inputClass} />
+                {fieldErrors.telefono && <p className="text-red-500 text-xs mt-0.5">{fieldErrors.telefono}</p>}
               </div>
             </div>
-          </div>
-          {/* Contacto */}
-          <div>
-            <div className="text-gray-400 font-semibold mb-2">Contacto</div>
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-gray-400 focus:bg-white/10 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all duration-200 shadow-sm"
-            />
-            {fieldErrors.email && (
-              <div className="text-red-400 text-xs mt-1">{fieldErrors.email}</div>
-            )}
-            <input
-              type="text"
-              name="telefono"
-              placeholder="Teléfono"
-              value={form.telefono}
-              onChange={handleChange}
-              className="w-full mt-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-gray-400 focus:bg-white/10 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all duration-200 shadow-sm"
-            />
-            {fieldErrors.telefono && (
-              <div className="text-red-400 text-xs mt-1">{fieldErrors.telefono}</div>
-            )}
-          </div>
-          {/* Acceso */}
-          <div>
-            <div className="text-gray-400 font-semibold mb-2">Acceso</div>
-            <div className="relative">
-              <input
-                type="password"
-                name="password"
-                placeholder="Contraseña"
-                value={form.password}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-gray-400 focus:bg-white/10 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all duration-200 shadow-sm pr-12"
-              />
+
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start">
+              <div>
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Contraseña (mín. 6 caracteres)"
+                  value={form.password}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+                {fieldErrors.password && <p className="text-red-500 text-xs mt-0.5">{fieldErrors.password}</p>}
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`sm:min-w-[180px] h-[42px] px-5 rounded-lg font-semibold text-white text-sm transition cursor-pointer shadow-md focus:ring-2 ${cfg.button} ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {loading ? 'Creando...' : cfg.submitLabel}
+              </button>
             </div>
-            {fieldErrors.password && (
-              <div className="text-red-400 text-xs mt-1">{fieldErrors.password}</div>
+
+            {error && (
+              <div className="bg-red-50 text-red-700 rounded-lg px-3 py-2 text-center border border-red-100 text-xs sm:text-sm">
+                {error}
+              </div>
             )}
-          </div>
-          {error && (
-            <div className="bg-red-500/10 text-red-300 rounded-lg px-4 py-2 text-center border border-red-400/20">
-              {error}
-            </div>
-          )}
-          {/* 5. Botón submit dinámico */}
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500/50 transition-all duration-200 cursor-pointer shadow-xl shadow-indigo-700/20 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-          >
-            {loading
-              ? 'Creando cuenta...'
-              : role === 'CLIENTE'
-                ? 'Crear cuenta gratis'
-                : 'Crear cuenta de agente'}
-          </button>
-          <div className="text-xs text-gray-400 text-center mt-2">
-            Tus datos están protegidos y nunca se compartirán.
-          </div>
-        </form>
-        <div className="mt-6 text-center text-[15px]">
-          <span className="text-gray-300">¿Ya tenés cuenta? </span>
-          <span
-            className="text-indigo-300 hover:underline cursor-pointer font-medium transition"
-            onClick={() => navigate('/login')}
-          >
-            Iniciar sesión
-          </span>
+          </form>
+
+          <p className="text-center text-sm text-slate-500">
+            ¿Ya tenés cuenta?{' '}
+            <button type="button" className={`${cfg.link} hover:underline font-medium`} onClick={() => navigate('/login')}>
+              Iniciar sesión
+            </button>
+          </p>
         </div>
       </div>
     </div>
