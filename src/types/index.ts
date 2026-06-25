@@ -1,5 +1,6 @@
 export type PropertyType = 'Casa' | 'Departamento' | 'Terreno' | 'Local Comercial' | 'Oficina';
 export type PropertyStatus = 'Venta' | 'Alquiler' | 'Temporario';
+export type PublicacionEstado = 'BORRADOR' | 'PUBLICADA';
 
 export interface AgentContact {
   id?: string;
@@ -31,6 +32,7 @@ export interface Property {
   zona?: string;
   agent?: AgentContact;
   imagenes?: { url: string }[];
+  publicacionEstado?: PublicacionEstado;
 }
 
 export interface User {

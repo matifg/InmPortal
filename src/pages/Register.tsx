@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Building2 } from 'lucide-react';
+import {
+  AR_MOBILE_PHONE_PLACEHOLDER,
+  AR_MOBILE_PHONE_ERROR,
+  isValidArMobilePhone,
+  normalizeArMobileDigits,
+} from '../lib/agentContact';
 
 type RegisterRole = 'CLIENTE' | 'AGENTE';
 
@@ -61,7 +67,7 @@ export default function Register() {
     }
   }, [location.state]);
 
-  const validateField = (name: string, value: string) => {
+  const validateField = (name: string, value: string, currentRole = role) => {
     let fieldError = '';
     if (name === 'nombre' || name === 'apellido') {
       if (!value.trim()) fieldError = 'Obligatorio';
@@ -72,8 +78,12 @@ export default function Register() {
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) fieldError = 'Email inválido';
     }
     if (name === 'telefono') {
-      if (!value.trim()) fieldError = 'Obligatorio';
-      else if (!/^[\d\s+\-()]{8,}$/.test(value.trim())) fieldError = 'Teléfono inválido';
+      if (currentRole === 'AGENTE') {
+        if (!value.trim()) fieldError = 'WhatsApp / teléfono obligatorio para agentes';
+        else if (!isValidArMobilePhone(value)) fieldError = AR_MOBILE_PHONE_ERROR;
+      } else if (value.trim() && !isValidArMobilePhone(value)) {
+        fieldError = AR_MOBILE_PHONE_ERROR;
+      }
     }
     if (name === 'password') {
       if (!value) fieldError = 'Obligatorio';
@@ -85,8 +95,14 @@ export default function Register() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    validateField(name, value);
+    let nextValue = value;
+
+    if (name === 'telefono' && role === 'AGENTE') {
+      nextValue = value.replace(/^\+?54\s*9?\s*/, '');
+    }
+
+    setForm((prev) => ({ ...prev, [name]: nextValue }));
+    validateField(name, nextValue);
   };
 
   const validate = () => {
@@ -94,7 +110,7 @@ export default function Register() {
     const errors: typeof fieldErrors = { nombre: '', apellido: '', email: '', telefono: '', password: '' };
 
     Object.entries(form).forEach(([name, value]) => {
-      const fieldError = validateField(name, value);
+      const fieldError = validateField(name, value, role);
       errors[name as keyof typeof errors] = fieldError;
       if (fieldError) valid = false;
     });
@@ -107,10 +123,14 @@ export default function Register() {
     setLoading(true);
     setError('');
     try {
+      const telefono = form.telefono.trim()
+        ? normalizeArMobileDigits(form.telefono)
+        : '';
+
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, rol: role }),
+        body: JSON.stringify({ ...form, telefono, rol: role }),
       });
       if (res.ok) {
         navigate('/login', { state: { registerSuccess: true } });
@@ -155,7 +175,8 @@ export default function Register() {
             <h3 className="text-lg font-bold text-slate-900 mb-2">¿Crear cuenta de agente?</h3>
             <p className="text-slate-600 text-sm mb-4">
               Estás registrándote como <strong>agente inmobiliario</strong>. Para publicar propiedades
-              necesitás activar una membresía.
+              necesitás activar una membresía. Tu WhatsApp ({form.telefono || 'sin número'}) se mostrará
+              en las fichas de tus propiedades.
             </p>
             <div className="flex gap-3">
               <button
@@ -223,7 +244,39 @@ export default function Register() {
                 {fieldErrors.email && <p className="text-red-500 text-xs mt-0.5">{fieldErrors.email}</p>}
               </div>
               <div>
-                <input type="text" name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} className={inputClass} />
+                {role === 'AGENTE' ? (
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-200 bg-slate-100 text-slate-600 text-sm font-medium whitespace-nowrap">
+                      +54 9
+                    </span>
+                    <input
+                      type="tel"
+                      name="telefono"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder={AR_MOBILE_PHONE_PLACEHOLDER}
+                      value={form.telefono}
+                      onChange={handleChange}
+                      className={`${inputClass} rounded-l-none flex-1 min-w-0`}
+                    />
+                  </div>
+                ) : (
+                  <input
+                    type="tel"
+                    name="telefono"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="Teléfono (opcional)"
+                    value={form.telefono}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                )}
+                {role === 'AGENTE' && !fieldErrors.telefono && (
+                  <p className="text-slate-500 text-xs mt-0.5">
+                    WhatsApp argentino (móvil). Los visitantes te contactarán por este número.
+                  </p>
+                )}
                 {fieldErrors.telefono && <p className="text-red-500 text-xs mt-0.5">{fieldErrors.telefono}</p>}
               </div>
             </div>

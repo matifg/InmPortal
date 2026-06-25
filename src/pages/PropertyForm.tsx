@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { UploadCloud, Home, MapPin, DollarSign, Bed, Info, ArrowLeft, Eye } from 'lucide-react';
+import {
+  UploadCloud, MapPin, Bed, Info, ArrowLeft, Eye, FileText, ImageIcon, Tag,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import MembresiaBanner from '../components/MembresiaBanner';
 import { useMembresia } from '../hooks/useMembresia';
 import { fetchProvincias, fetchLocalidades, type UbicacionItem } from '../services/ubicaciones';
 import { resolveCityToLocation } from '../lib/resolveLocation';
 import PropertyFormPreview from '../components/PropertyFormPreview';
+import PropertyFormProgress, { type ProgressStep } from '../components/PropertyFormProgress';
+import PropertyFormSection from '../components/PropertyFormSection';
 import FormImageGrid, { type ImageGridItem } from '../components/FormImageGrid';
 
 type SavedImage = { id: string; url: string; orden?: number };
@@ -24,6 +28,7 @@ function normLocationName(s: string): string {
 }
 
 type ValidationError = { message: string; fieldId: string };
+type SaveMode = 'BORRADOR' | 'PUBLICADA';
 
 function focusField(fieldId: string) {
   const el = document.getElementById(fieldId);
@@ -66,7 +71,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
   const [ubicacionError, setUbicacionError] = useState('');
   const [locationHydrated, setLocationHydrated] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const skipCityResetRef = useRef(false);
+  const hydratingLocationRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOverZone, setDragOverZone] = useState(false);
 
@@ -87,29 +92,36 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
   });
 
   useEffect(() => {
-    if (initialData) {
-      const rawPrice = initialData.precio?.toString() || '';
-      const digits = rawPrice.replace(/\D/g, '');
-      setFormData({
-        title: initialData.titulo || '',
-        description: initialData.descripcion || '',
-        price: digits ? new Intl.NumberFormat('es-AR').format(Number(digits)) : '',
-        city: initialData.ciudad || '',
-        address: initialData.direccion || '',
-        bedrooms: initialData.habitaciones?.toString() || '',
-        bathrooms: initialData.banios?.toString() || '',
-        area: initialData.superficieM2?.toString() || '',
-        status: initialData.estado || 'Venta',
-        currency: initialData.moneda || 'USD',
-        operation: initialData.operacion || 'Venta',
-        zona: initialData.zona || '',
-        ocultarPrecio: initialData.ocultarPrecio ?? false,
-      });
-      setGridItems(
-        parseSavedImages(initialData.imagenes).map((data) => ({ type: 'saved' as const, data }))
-      );
+    if (!initialData) return;
+
+    const rawPrice = initialData.precio?.toString() || '';
+    const digits = rawPrice.replace(/\D/g, '');
+    setFormData({
+      title: initialData.titulo || '',
+      description: initialData.descripcion || '',
+      price: digits ? new Intl.NumberFormat('es-AR').format(Number(digits)) : '',
+      city: initialData.ciudad || '',
+      address: initialData.direccion || '',
+      bedrooms: initialData.habitaciones?.toString() || '',
+      bathrooms: initialData.banios?.toString() || '',
+      area: initialData.superficieM2?.toString() || '',
+      status: initialData.estado || 'Venta',
+      currency: initialData.moneda || 'USD',
+      operation: initialData.operacion || 'Venta',
+      zona: initialData.zona || '',
+      ocultarPrecio: initialData.ocultarPrecio ?? false,
+    });
+    setGridItems(
+      parseSavedImages(initialData.imagenes).map((data) => ({ type: 'saved' as const, data }))
+    );
+
+    if (isEdit) {
+      setLocationHydrated(false);
+      setProvinciaId('');
+      setLocalidadId('');
+      setLocalidades([]);
     }
-  }, [initialData]);
+  }, [initialData, isEdit]);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,35 +144,41 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
 
   useEffect(() => {
     if (!isEdit || !initialData?.ciudad || provincias.length === 0 || locationHydrated) return;
+
     let cancelled = false;
     (async () => {
       const resolved = await resolveCityToLocation(initialData.ciudad, provincias);
-      if (cancelled || !resolved) {
+      if (cancelled) return;
+
+      if (!resolved) {
         setLocationHydrated(true);
         return;
       }
-      skipCityResetRef.current = true;
+
+      hydratingLocationRef.current = true;
       setProvinciaId(resolved.provinciaId);
       setLocalidades(resolved.localidades);
       setLocalidadId(resolved.localidadId);
       setFormData((prev) => ({ ...prev, city: resolved.cityName }));
       setLocationHydrated(true);
-      setTimeout(() => {
-        skipCityResetRef.current = false;
-      }, 0);
     })();
+
     return () => {
       cancelled = true;
     };
-  }, [isEdit, initialData, provincias, locationHydrated]);
+  }, [isEdit, initialData?.ciudad, initialData?.id, provincias, locationHydrated]);
 
   useEffect(() => {
-    if (!provinciaId) {
-      setLocalidades([]);
-      if (!skipCityResetRef.current) setLocalidadId('');
+    if (hydratingLocationRef.current) {
+      hydratingLocationRef.current = false;
       return;
     }
-    if (skipCityResetRef.current) return;
+
+    if (!provinciaId) {
+      setLocalidades([]);
+      setLocalidadId('');
+      return;
+    }
 
     let cancelled = false;
     (async () => {
@@ -179,6 +197,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         if (!cancelled) setLoadingLocalidades(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };
@@ -207,10 +226,12 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
   );
 
   useEffect(() => {
+    // En edición, esperar a hidratar provincia/localidad antes de limpiar zona
+    if (isEdit && !locationHydrated) return;
     if (!isBaraderoBsAs && formData.zona) {
       setFormData((prev) => ({ ...prev, zona: '' }));
     }
-  }, [isBaraderoBsAs, formData.zona]);
+  }, [isBaraderoBsAs, formData.zona, isEdit, locationHydrated]);
 
   const onLocalidadChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     markDirty();
@@ -259,7 +280,9 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const validate = (): ValidationError | null => {
+  const validate = (mode: SaveMode): ValidationError | null => {
+    if (mode === 'BORRADOR') return null;
+
     if (!formData.title.trim()) {
       return { message: 'El título es obligatorio', fieldId: 'field-title' };
     }
@@ -435,8 +458,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     ]);
   }, []);
 
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
+  const handleSave = async (mode: SaveMode) => {
     if (loading) return;
     if (!membresiaActiva) return;
     setLoading(true);
@@ -444,13 +466,15 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
 
     const token = localStorage.getItem('token');
 
-    const validationError = validate();
+    const validationError = validate(mode);
     if (validationError) {
       setErrorMsg(validationError.message);
       setLoading(false);
       focusField(validationError.fieldId);
       return;
     }
+
+    const hasNewImages = gridItems.some((i) => i.type === 'new');
 
     // Subir las imágenes nuevas a Supabase (mapeadas por key para respetar el orden de la grilla)
     const uploadedUrlByKey = new Map<string, string>();
@@ -460,7 +484,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       if (url) uploadedUrlByKey.set(item.data.key, url);
     }
 
-    if (!isEdit && uploadedUrlByKey.size === 0) {
+    if (hasNewImages && uploadedUrlByKey.size === 0) {
       setErrorMsg('No se pudieron subir las imágenes. Intentá de nuevo.');
       setLoading(false);
       return;
@@ -472,7 +496,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         descripcion: formData.description,
         direccion: formData.address,
         ciudad: formData.city,
-        precio: parsePrice(formData.price),
+        precio: formData.price ? parsePrice(formData.price) : 0,
         superficieM2: Number(formData.area) || 0,
         habitaciones: Number(formData.bedrooms) || 0,
         banios: Number(formData.bathrooms) || 0,
@@ -482,29 +506,32 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         moneda: formData.currency,
         zona: isBaraderoBsAs ? formData.zona || null : null,
         ocultarPrecio: formData.ocultarPrecio,
+        publicacionEstado: mode,
       };
 
-      let propiedad;
-      if (isEdit && initialData?.id) {
-        propiedad = await fetch(`${import.meta.env.VITE_API_URL}/propiedades/${initialData.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }).then(r => r.json());
-      } else {
-        propiedad = await fetch(`${import.meta.env.VITE_API_URL}/propiedades`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }).then(r => r.json());
+      const url = isEdit && initialData?.id
+        ? `${import.meta.env.VITE_API_URL}/propiedades/${initialData.id}`
+        : `${import.meta.env.VITE_API_URL}/propiedades`;
+
+      const res = await fetch(url, {
+        method: isEdit && initialData?.id ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = data.message || data.mensaje || 'Error al guardar propiedad';
+        setErrorMsg(msg);
+        toast.error(msg);
+        setLoading(false);
+        return;
       }
 
+      const propiedad = await res.json();
       const propiedadId = propiedad?.id ?? initialData?.id;
       let imageError = false;
 
@@ -514,8 +541,6 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
 
-        // Crear las imágenes nuevas con su orden según la posición en la grilla
-        // y armar el orden final de TODAS las imágenes (guardadas + nuevas)
         const ordenFinal: { id: string; orden: number }[] = [];
         for (let i = 0; i < gridItems.length; i++) {
           const item = gridItems[i];
@@ -526,26 +551,25 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
             continue;
           }
 
-          const url = uploadedUrlByKey.get(item.data.key);
-          if (!url) {
+          const imageUrl = uploadedUrlByKey.get(item.data.key);
+          if (!imageUrl) {
             imageError = true;
             continue;
           }
           try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/imagenes`, {
+            const imgRes = await fetch(`${import.meta.env.VITE_API_URL}/imagenes`, {
               method: 'POST',
               headers: jsonHeaders,
-              body: JSON.stringify({ url, propiedad: { id: propiedadId }, orden }),
+              body: JSON.stringify({ url: imageUrl, propiedad: { id: propiedadId }, orden }),
             });
-            if (!res.ok) throw new Error('post imagen failed');
-            const created = await res.json();
+            if (!imgRes.ok) throw new Error('post imagen failed');
+            const created = await imgRes.json();
             if (created?.id) ordenFinal.push({ id: String(created.id), orden });
           } catch {
             imageError = true;
           }
         }
 
-        // Persistir el orden final (solo necesario en edición; en alta el POST ya lleva el orden)
         if (isEdit && ordenFinal.length > 0) {
           const ok = await persistImageOrder(propiedadId, ordenFinal, token);
           if (!ok) imageError = true;
@@ -555,11 +579,13 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       setIsDirty(false);
       if (imageError) {
         toast.error('Se guardó la propiedad, pero algunas imágenes no se actualizaron');
+      } else if (mode === 'BORRADOR') {
+        toast.success('Borrador guardado');
       } else {
         toast.success(isEdit ? 'Propiedad actualizada' : 'Propiedad publicada');
       }
       navigate('/dashboard');
-    } catch (err) {
+    } catch {
       setErrorMsg('Error al guardar propiedad');
       toast.error('Error al guardar');
     } finally {
@@ -578,9 +604,61 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     if (e.dataTransfer.files?.length) addFiles(Array.from(e.dataTransfer.files));
   };
 
-  const imagesRequired = !isEdit;
   const totalImages = gridItems.length;
-  const imagesMissing = imagesRequired && totalImages === 0;
+  const imagesMissing = totalImages === 0 && !!errorMsg;
+  const isDraft = initialData?.publicacionEstado === 'BORRADOR';
+  const publishLabel = isEdit && !isDraft ? 'Guardar cambios' : 'Publicar';
+
+  const progressSteps = useMemo((): ProgressStep[] => [
+    {
+      id: 'info',
+      label: 'Información',
+      complete: !!(formData.title.trim() && formData.price && formData.description.trim()),
+    },
+    {
+      id: 'location',
+      label: 'Ubicación',
+      complete: !!(provinciaId && formData.city.trim() && formData.address.trim() &&
+        (!isBaraderoBsAs || formData.zona)),
+    },
+    {
+      id: 'features',
+      label: 'Características',
+      complete: !!(formData.bedrooms || formData.bathrooms || formData.area),
+    },
+    {
+      id: 'photos',
+      label: 'Fotos',
+      complete: totalImages > 0,
+    },
+    {
+      id: 'publish',
+      label: 'Publicar',
+      complete: validate('PUBLICADA') === null,
+    },
+  ], [formData, provinciaId, isBaraderoBsAs, totalImages, gridItems.length, isEdit]);
+
+  const previewProps = {
+    title: formData.title,
+    price: formData.price,
+    ocultarPrecio: formData.ocultarPrecio,
+    currency: formData.currency,
+    city: formData.city,
+    address: formData.address,
+    provincia: provinciaNombre,
+    status: formData.operation,
+    coverUrl: coverPreviewUrl,
+    bedrooms: formData.bedrooms,
+    bathrooms: formData.bathrooms,
+    area: formData.area,
+  };
+
+  const fieldInput = (hasError: boolean) =>
+    `w-full px-4 py-2.5 rounded-xl border text-sm transition placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ${
+      hasError
+        ? 'border-red-400 bg-red-50/30'
+        : 'border-gray-200 bg-white focus:border-indigo-500 hover:border-gray-300'
+    }`;
 
   function Tooltip({ text }: { text: string }) {
     return (
@@ -590,37 +668,34 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     );
   }
 
-  const sectionCard =
-    'bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm';
-
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-8">
+    <div className="min-h-screen bg-gray-50 pb-32">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8">
+        {/* Header */}
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <Link
               to="/dashboard"
-              className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-indigo-600 mb-3 transition-colors"
+              className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-indigo-600 mb-3 transition-colors"
             >
               <ArrowLeft className="h-4 w-4 mr-1.5" />
               Volver al panel
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-2">
-              <Home className="h-7 w-7 text-indigo-600 shrink-0" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
               {isEdit ? 'Editar propiedad' : 'Nueva propiedad'}
             </h1>
-            <p className="text-slate-500 mt-1 text-sm sm:text-base">
+            <p className="text-gray-500 mt-1 text-sm sm:text-base">
               {isEdit
-                ? 'Actualizá los datos y las fotos de tu publicación.'
-                : 'Completá los datos para publicar en minutos.'}
+                ? 'Actualizá los datos y publicá cuando estés listo.'
+                : 'Completá el formulario y mirá la vista previa en tiempo real.'}
             </p>
           </div>
-          {isEdit && initialData?.id && (
+          {isEdit && initialData?.id && !isDraft && (
             <Link
               to={`/propiedad/${initialData.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium text-indigo-600 hover:bg-indigo-50 shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-indigo-600 hover:bg-indigo-50 shadow-sm transition-colors"
             >
               <Eye className="h-4 w-4" />
               Vista previa
@@ -628,22 +703,34 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
           )}
         </div>
 
-        <MembresiaBanner membresiaActiva={membresiaActiva} className="mb-6" />
+        <MembresiaBanner membresiaActiva={membresiaActiva} className="mb-5" />
 
         {errorMsg && (
-          <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 border border-red-200 text-sm">
+          <div className="bg-red-50 text-red-700 p-4 rounded-2xl mb-5 border border-red-200 text-sm">
             {errorMsg}
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 items-start">
-        <form id="property-form" onSubmit={handleSubmit} className="space-y-6 min-w-0">
+        {/* Mobile preview */}
+        <div className="lg:hidden mb-5">
+          <PropertyFormPreview {...previewProps} />
+        </div>
 
-            <section className={sectionCard}>
-              <h2 className="text-lg font-bold text-slate-900 mb-5">Datos principales</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 lg:gap-8 items-start">
+          <form id="property-form" className="space-y-4 min-w-0" onSubmit={(e) => e.preventDefault()}>
+
+            <PropertyFormProgress steps={progressSteps} />
+
+            {/* Información básica */}
+            <PropertyFormSection
+              id="info"
+              title="Información básica"
+              subtitle="Lo primero que verán los interesados"
+              icon={FileText}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Título <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -651,81 +738,70 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
-                    className={`w-full px-5 py-3 rounded-lg border ${errorMsg && !formData.title.trim() ? 'border-red-500' : 'border-slate-200'} bg-white focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition placeholder:text-slate-400`}
-                    placeholder="Ej: Casa moderna con pileta"
+                    className={fieldInput(!!errorMsg && !formData.title.trim())}
+                    placeholder="Ej: Casa moderna con pileta y jardín"
                   />
                   {errorMsg && !formData.title.trim() && (
                     <span className="text-xs text-red-500 mt-1 block">El título es obligatorio</span>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1 relative group">
-                    Precio <span className="text-red-500">*</span>
-                    {/* Tooltip para precio */}
-                    <span className="relative group">
-                      <Info className="h-4 w-4 text-slate-400 cursor-pointer" />
-                      <Tooltip text="Ingresá solo números, sin puntos ni comas. Ej: 250000" />
-                    </span>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Descripción <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex gap-2">
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    className={`${fieldInput(!!errorMsg && !formData.description.trim())} h-24 resize-none`}
+                    placeholder="Destacá lo mejor de la propiedad: ambientes, amenities, entorno..."
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1 relative group">
+                      Precio <span className="text-red-500">*</span>
+                      <Info className="h-3.5 w-3.5 text-gray-400" />
+                      <Tooltip text="Solo números. Ej: 250000" />
+                    </label>
                     <input
                       id="field-price"
                       name="price"
                       value={formData.price}
                       onChange={handleChange}
-                      className={`w-full px-5 py-3 rounded-lg border ${errorMsg && !formData.price ? 'border-red-500' : 'border-slate-200'} bg-white focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition placeholder:text-slate-400`}
-                      placeholder="Ej: 250000"
+                      className={fieldInput(!!errorMsg && !formData.price)}
+                      placeholder="250.000"
                     />
+                    {errorMsg && !formData.price && (
+                      <span className="text-xs text-red-500 mt-1 block">El precio es obligatorio</span>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Moneda</label>
                     <select
                       name="currency"
                       value={formData.currency}
                       onChange={handleChange}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition w-24"
+                      className={`${fieldInput(false)} min-w-[100px]`}
                     >
                       <option>USD</option>
                       <option>ARS</option>
                     </select>
                   </div>
-                  {errorMsg && !formData.price && (
-                    <span className="text-xs text-red-500 mt-1 block">El precio es obligatorio</span>
-                  )}
-                  <label className="flex items-center gap-2 mt-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="ocultarPrecio"
-                      checked={formData.ocultarPrecio}
-                      onChange={handleChange}
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span className="text-sm text-slate-600">Ocultar precio para el público</span>
-                  </label>
                 </div>
               </div>
-              <div className="mt-8">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Descripción <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  className={`w-full px-5 py-3 rounded-lg border ${errorMsg && !formData.description.trim() ? 'border-red-500' : 'border-slate-200'} bg-white focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition placeholder:text-slate-400 h-28`}
-                  placeholder="Contá los detalles más importantes de la propiedad"
-                />
-                {errorMsg && !formData.description.trim() && (
-                  <span className="text-xs text-red-500 mt-1 block">La descripción es obligatoria</span>
-                )}
-              </div>
-            </section>
+            </PropertyFormSection>
 
-            <section className={sectionCard}>
-              <h2 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-indigo-500" />
-                Ubicación
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Ubicación */}
+            <PropertyFormSection
+              id="location"
+              title="Ubicación"
+              subtitle="Provincia, localidad y dirección"
+              icon={MapPin}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="min-w-0">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Provincia <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -735,16 +811,16 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                       setProvinciaId(e.target.value);
                     }}
                     disabled={loadingProvincias}
-                    className="w-full min-w-0 px-4 py-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition"
+                    className={fieldInput(false)}
                   >
                     <option value="">{loadingProvincias ? 'Cargando...' : 'Elegir provincia'}</option>
-                    {provincias.map(p => (
+                    {provincias.map((p) => (
                       <option key={p.id} value={p.id}>{p.nombre}</option>
                     ))}
                   </select>
                 </div>
                 <div className="min-w-0">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Localidad <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -752,21 +828,17 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                     value={localidadId}
                     onChange={onLocalidadChange}
                     disabled={!provinciaId || loadingLocalidades}
-                    className={`w-full min-w-0 px-4 py-3 rounded-lg border text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500/20 transition disabled:bg-slate-50 disabled:text-slate-400 ${
-                      errorMsg && !formData.city.trim()
-                        ? 'border-red-500'
-                        : 'border-slate-200 bg-white focus:border-indigo-500'
-                    }`}
+                    className={fieldInput(!!errorMsg && !formData.city.trim())}
                   >
                     <option value="">
                       {loadingLocalidades ? 'Cargando...' : 'Elegir localidad'}
                     </option>
-                    {localidades.map(l => (
+                    {localidades.map((l) => (
                       <option key={l.id} value={l.id}>{l.nombre}</option>
                     ))}
                   </select>
                   {!provinciaId && (
-                    <p className="text-xs text-slate-500 mt-1">Seleccioná primero la provincia</p>
+                    <p className="text-xs text-gray-500 mt-1">Seleccioná primero la provincia</p>
                   )}
                   {errorMsg && !formData.city.trim() && provinciaId && (
                     <span className="text-xs text-red-500 mt-1 block">La localidad es obligatoria</span>
@@ -774,7 +846,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                 </div>
                 {isBaraderoBsAs && (
                   <div className="min-w-0">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Zona <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -782,11 +854,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                       name="zona"
                       value={formData.zona}
                       onChange={handleChange}
-                      className={`w-full min-w-0 px-4 py-3 rounded-lg border text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500/20 transition ${
-                        errorMsg && !formData.zona
-                          ? 'border-red-500'
-                          : 'border-slate-200 bg-white focus:border-indigo-500'
-                      }`}
+                      className={fieldInput(!!errorMsg && !formData.zona)}
                     >
                       <option value="">Elegir zona</option>
                       <option value="Colonia Suiza">Colonia Suiza</option>
@@ -799,8 +867,8 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                     )}
                   </div>
                 )}
-                <div className="min-w-0 sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                <div className={`min-w-0 ${isBaraderoBsAs ? 'sm:col-span-2' : 'sm:col-span-2'}`}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Dirección <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -809,11 +877,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                     value={formData.address}
                     onChange={handleChange}
                     placeholder="Calle y número"
-                    className={`w-full px-4 py-3 rounded-lg border text-sm focus:ring-2 focus:ring-indigo-500/20 transition placeholder:text-slate-400 ${
-                      errorMsg && !formData.address.trim()
-                        ? 'border-red-500'
-                        : 'border-slate-200 bg-white focus:border-indigo-500'
-                    }`}
+                    className={fieldInput(!!errorMsg && !formData.address.trim())}
                   />
                   {errorMsg && !formData.address.trim() && (
                     <span className="text-xs text-red-500 mt-1 block">La dirección es obligatoria</span>
@@ -821,130 +885,156 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                 </div>
               </div>
               {ubicacionError && (
-                <p className="mt-4 text-sm text-amber-700">{ubicacionError}</p>
+                <p className="mt-3 text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                  {ubicacionError}
+                </p>
               )}
-            </section>
+            </PropertyFormSection>
 
-            <section className={sectionCard}>
-              <h2 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
-                <Bed className="h-5 w-5 text-indigo-500" />
-                Detalles
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Características */}
+            <PropertyFormSection
+              id="features"
+              title="Características"
+              subtitle="Ambientes y superficie"
+              icon={Bed}
+            >
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Habitaciones
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Dormitorios</label>
                   <input
                     type="number"
                     name="bedrooms"
                     value={formData.bedrooms}
                     onChange={handleChange}
-                    placeholder="Ej: 3"
-                    className="w-full px-5 py-3 rounded-lg border border-slate-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition placeholder:text-slate-400"
+                    placeholder="3"
+                    min={0}
+                    className={fieldInput(false)}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Baños
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Baños</label>
                   <input
                     type="number"
                     name="bathrooms"
                     value={formData.bathrooms}
                     onChange={handleChange}
-                    placeholder="Ej: 2"
-                    className="w-full px-5 py-3 rounded-lg border border-slate-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition placeholder:text-slate-400"
+                    placeholder="2"
+                    min={0}
+                    className={fieldInput(false)}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Superficie m²
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">m²</label>
                   <input
                     type="number"
                     name="area"
                     value={formData.area}
                     onChange={handleChange}
-                    placeholder="Ej: 120"
-                    className="w-full px-5 py-3 rounded-lg border border-slate-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition placeholder:text-slate-400"
+                    placeholder="120"
+                    min={0}
+                    className={fieldInput(false)}
                   />
                 </div>
               </div>
-            </section>
+            </PropertyFormSection>
 
-            <section className={sectionCard}>
-              <h2 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-indigo-500" />
-                Tipo de operación
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Comercialización */}
+            <PropertyFormSection
+              id="commercial"
+              title="Comercialización"
+              subtitle="Tipo de operación y visibilidad del precio"
+              icon={Tag}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1 relative group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1 relative group">
                     Estado
-                    <Info className="h-4 w-4 text-slate-400 cursor-pointer" />
-                    <Tooltip text="¿La propiedad está en venta o alquiler actualmente?" />
+                    <Info className="h-3.5 w-3.5 text-gray-400" />
+                    <Tooltip text="¿En venta o alquiler actualmente?" />
                   </label>
                   <select
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full px-5 py-3 rounded-lg border border-slate-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition"
+                    className={fieldInput(false)}
                   >
                     <option>Venta</option>
                     <option>Alquiler</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1 relative group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1 relative group">
                     Operación
-                    <Info className="h-4 w-4 text-slate-400 cursor-pointer" />
-                    <Tooltip text="Seleccioná si la publicación es para venta o alquiler." />
+                    <Info className="h-3.5 w-3.5 text-gray-400" />
+                    <Tooltip text="Tipo de publicación" />
                   </label>
                   <select
                     name="operation"
                     value={formData.operation}
                     onChange={handleChange}
-                    className="w-full px-5 py-3 rounded-lg border border-slate-200 bg-white focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition"
+                    className={fieldInput(false)}
                   >
                     <option>Venta</option>
                     <option>Alquiler</option>
                   </select>
                 </div>
               </div>
-            </section>
+              <label className="flex items-center gap-3 mt-4 p-3 rounded-xl border border-gray-200 bg-gray-50 cursor-pointer hover:bg-gray-100/80 transition-colors">
+                <input
+                  type="checkbox"
+                  name="ocultarPrecio"
+                  checked={formData.ocultarPrecio}
+                  onChange={handleChange}
+                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-800">Ocultar precio al público</span>
+                  <p className="text-xs text-gray-500">Los visitantes verán "Consultar precio"</p>
+                </div>
+              </label>
+            </PropertyFormSection>
 
-            <section id="field-images" className={sectionCard}>
-              <h2 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
-                <UploadCloud className="h-5 w-5 text-indigo-500" />
-                Imágenes {imagesRequired && <span className="text-red-500">*</span>}
-              </h2>
-              <p className="text-sm text-slate-500 mb-4">
-                {totalImages > 0
-                  ? `${totalImages} foto${totalImages !== 1 ? 's' : ''} · arrastrá para reordenar · la primera es la portada`
-                  : 'La primera imagen será la portada del listado'}
-              </p>
+            {/* Multimedia */}
+            <PropertyFormSection
+              id="photos"
+              title="Fotos"
+              subtitle="La primera imagen será la portada del anuncio"
+              icon={ImageIcon}
+            >
               <div
+                id="field-images"
                 onDragOver={(e) => {
                   e.preventDefault();
                   setDragOverZone(true);
                 }}
                 onDragLeave={() => setDragOverZone(false)}
                 onDrop={handleDrop}
-                className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition mb-5 ${
+                className={`flex flex-col items-center justify-center w-full min-h-[11rem] border-2 border-dashed rounded-2xl cursor-pointer transition mb-4 ${
                   dragOverZone
-                    ? 'border-indigo-500 bg-indigo-50/80'
-                    : imagesMissing && errorMsg
-                      ? 'border-red-400 bg-red-50/30'
-                      : 'border-slate-300 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50/30'
+                    ? 'border-indigo-500 bg-indigo-50'
+                    : imagesMissing
+                      ? 'border-red-300 bg-red-50/40'
+                      : 'border-gray-300 bg-gray-50 hover:border-indigo-400 hover:bg-indigo-50/50'
                 }`}
                 onClick={() => fileInputRef.current?.click()}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
               >
-                <UploadCloud className="h-9 w-9 text-indigo-400 mb-2" />
-                <span className="text-indigo-700 font-medium text-sm">Arrastrá o hacé click para subir</span>
+                <div className="w-12 h-12 rounded-2xl bg-white border border-gray-200 shadow-sm flex items-center justify-center mb-3">
+                  <UploadCloud className="h-6 w-6 text-indigo-500" />
+                </div>
+                <p className="text-sm font-semibold text-gray-800">
+                  Arrastrá tus fotos acá
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  o hacé click para elegir · JPG, PNG · múltiples archivos
+                </p>
+                {totalImages > 0 && (
+                  <p className="text-xs font-medium text-indigo-600 mt-2 bg-indigo-50 px-3 py-1 rounded-full">
+                    {totalImages} foto{totalImages !== 1 ? 's' : ''} cargada{totalImages !== 1 ? 's' : ''}
+                  </p>
+                )}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -954,66 +1044,73 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                   className="hidden"
                 />
               </div>
-              {imagesMissing && errorMsg && (
-                <p className="text-xs text-red-500 mb-4 -mt-3">Subí al menos una imagen</p>
+              {imagesMissing && (
+                <p className="text-xs text-red-500 mb-3">Subí al menos una imagen para publicar</p>
               )}
               {totalImages > 0 && (
-                <FormImageGrid
-                  items={gridItems}
-                  deletingId={deletingImageId}
-                  onReorder={reorderImages}
-                  onRemove={removeImageAt}
-                  onSetPortada={setAsPortada}
-                />
+                <>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Arrastrá para reordenar · la primera es la portada
+                  </p>
+                  <FormImageGrid
+                    items={gridItems}
+                    deletingId={deletingImageId}
+                    onReorder={reorderImages}
+                    onRemove={removeImageAt}
+                    onSetPortada={setAsPortada}
+                  />
+                </>
               )}
-            </section>
-        </form>
+            </PropertyFormSection>
+          </form>
 
-        <aside className="hidden lg:block sticky top-24">
-          <PropertyFormPreview
-            title={formData.title}
-            price={formData.price}
-            ocultarPrecio={formData.ocultarPrecio}
-            currency={formData.currency}
-            city={formData.city}
-            address={formData.address}
-            status={formData.operation}
-            coverUrl={coverPreviewUrl}
-            bedrooms={formData.bedrooms}
-            bathrooms={formData.bathrooms}
-            area={formData.area}
-          />
-        </aside>
+          {/* Desktop sticky preview */}
+          <aside className="hidden lg:block sticky top-20">
+            <PropertyFormPreview {...previewProps} />
+          </aside>
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+      {/* Footer sticky */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-md shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
           <Link
             to="/dashboard"
-            className="text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-2 rounded-lg hover:bg-slate-100"
+            className="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors shrink-0"
           >
             Cancelar
           </Link>
-          {isDirty && (
-            <span className="hidden sm:inline text-xs text-amber-600 font-medium">Cambios sin guardar</span>
-          )}
-          <button
-            type="submit"
-            form="property-form"
-            disabled={loading || !membresiaActiva}
-            className={`px-6 sm:px-8 py-3 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition ${
-              !membresiaActiva ? 'opacity-60 cursor-not-allowed' : ''
-            }`}
-          >
-            {membresiaActiva
-              ? loading
-                ? 'Guardando...'
-                : isEdit
-                  ? 'Guardar cambios'
-                  : 'Publicar'
-              : 'Sin membresía'}
-          </button>
+          <div className="flex items-center gap-2 sm:gap-4">
+            {isDirty && (
+              <span className="hidden md:inline text-xs text-amber-600 font-medium whitespace-nowrap">
+                Cambios sin guardar
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={loading || !membresiaActiva}
+              onClick={() => handleSave('BORRADOR')}
+              className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-semibold text-sm border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition ${
+                !membresiaActiva ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
+            >
+              {loading ? 'Guardando...' : 'Guardar borrador'}
+            </button>
+            <button
+              type="button"
+              disabled={loading || !membresiaActiva}
+              onClick={() => handleSave('PUBLICADA')}
+              className={`px-6 sm:px-10 py-2.5 sm:py-3 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-md hover:shadow-lg transition ${
+                !membresiaActiva ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
+            >
+              {membresiaActiva
+                ? loading
+                  ? 'Guardando...'
+                  : publishLabel
+                : 'Sin membresía'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

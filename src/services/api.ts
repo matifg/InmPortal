@@ -1,5 +1,5 @@
 import { Property, PropertyType, AgentContact } from '../types';
-import { parseAgentContact, fetchAgentContact } from '../lib/agentContact';
+import { parseAgentContact, fetchAgentContact, resolveAgentContact } from '../lib/agentContact';
 import { normalizeImageUrl } from '../lib/propertyImages';
 
 function mapPropertyImages(item: { imageUrl?: string | null; imagenes?: { url?: string; orden?: number }[] }): string[] {
@@ -55,6 +55,7 @@ function mapPropertyItem(item: any): Property {
     tipoId: item.tipoId,
     zona: item.zona,
     agent: parseAgentContact(item.agente ?? item.agent) ?? undefined,
+    publicacionEstado: item.publicacionEstado ?? 'PUBLICADA',
   };
 }
 
@@ -89,14 +90,16 @@ export const api = {
     if (!res.ok) return undefined;
     const item = await res.json();
     const property = mapPropertyItem(item);
-    if (!property.agent && property.agentId) {
-      property.agent = (await fetchAgentContact(property.agentId)) ?? undefined;
+    if (property.agentId) {
+      property.agent =
+        (await resolveAgentContact(property.agentId, property.agent, token)) ?? property.agent;
     }
     return property;
   },
 
   getAgentContact: async (agentId: string): Promise<AgentContact | null> => {
-    return fetchAgentContact(agentId);
+    const token = localStorage.getItem('token');
+    return resolveAgentContact(agentId, null, token);
   },
 
   // GET /propiedades?agentId=:agentId

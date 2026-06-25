@@ -19,13 +19,25 @@ export async function resolveCityToLocation(
   for (const provincia of provincias) {
     try {
       const localidades = await fetchLocalidades(provincia.id);
-      const match = localidades.find((l) => norm(l.nombre) === target);
-      if (match) {
+      const exact = localidades.find((l) => norm(l.nombre) === target);
+      if (exact) {
         return {
           provinciaId: provincia.id,
-          localidadId: match.id,
+          localidadId: exact.id,
           localidades,
-          cityName: match.nombre,
+          cityName: exact.nombre,
+        };
+      }
+
+      const partial = localidades.find(
+        (l) => norm(l.nombre).includes(target) || target.includes(norm(l.nombre))
+      );
+      if (partial) {
+        return {
+          provinciaId: provincia.id,
+          localidadId: partial.id,
+          localidades,
+          cityName: partial.nombre,
         };
       }
     } catch {

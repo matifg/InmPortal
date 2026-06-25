@@ -2,10 +2,11 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Property } from '../types';
-import { Plus, Edit, Trash2, Loader2, MapPin, ExternalLink, Home, Search, X, ChevronDown, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, MapPin, ExternalLink, Home, Search, X, ChevronDown, EyeOff, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MembresiaBanner from '../components/MembresiaBanner';
 import { readMembresiaFromStorage, syncMembresiaFromAgentResponse } from '../lib/membresia';
+import { parseAgentContact } from '../lib/agentContact';
 
 // Badge UI mejorada
 function StatusBadge({ status }: { status: string }) {
@@ -16,6 +17,15 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide shadow-sm ${color}`}>
       {status}
+    </span>
+  );
+}
+
+function PublicacionBadge({ estado }: { estado?: string }) {
+  if (estado !== 'BORRADOR') return null;
+  return (
+    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide shadow-sm bg-amber-100 text-amber-800">
+      Borrador
     </span>
   );
 }
@@ -40,6 +50,7 @@ export default function AgentPanel() {
   // Nuevo: ordenamiento unificado
   const [order, setOrder] = useState('date-desc');
   const [membresiaActiva, setMembresiaActiva] = useState(readMembresiaFromStorage);
+  const [agentTelefono, setAgentTelefono] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -57,6 +68,8 @@ export default function AgentPanel() {
     if (!res.ok) throw new Error('No autorizado o no es agente');
     const agente = await res.json();
     setMembresiaActiva(syncMembresiaFromAgentResponse(agente));
+    const contact = parseAgentContact(agente);
+    setAgentTelefono(contact?.telefono ?? agente.telefono ?? null);
     return agente;
   };
 
@@ -163,6 +176,16 @@ export default function AgentPanel() {
           <div>
             <h1 className="text-5xl font-extrabold text-gray-900 tracking-tight mb-1 leading-tight">Panel de Agente</h1>
             <p className="text-gray-500 text-lg font-medium">Gestiona tus propiedades publicadas</p>
+            {agentTelefono ? (
+              <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-lg">
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp de contacto: <span className="font-semibold">{agentTelefono}</span>
+              </p>
+            ) : (
+              <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-lg inline-block">
+                Sin WhatsApp cargado — los visitantes no podrán contactarte por esa vía.
+              </p>
+            )}
           </div>
           {membresiaActiva ? (
             <Link
@@ -285,7 +308,11 @@ export default function AgentPanel() {
               <div
                 key={p.id}
                 className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 flex items-center gap-8 px-8 py-6 group cursor-pointer"
-                onClick={() => navigate(`/propiedad/${p.id}`)}
+                onClick={() => navigate(
+                  p.publicacionEstado === 'BORRADOR'
+                    ? `/propiedad/editar/${p.id}`
+                    : `/propiedad/${p.id}`
+                )}
                 tabIndex={0}
                 aria-label={`Ver detalle de ${p.title}`}
               >
@@ -305,7 +332,10 @@ export default function AgentPanel() {
                 </div>
                 {/* Info */}
                 <div className="flex-1 min-w-0 flex flex-col gap-2">
-                  <div className="font-semibold text-lg text-gray-900 truncate">{p.title}</div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="font-semibold text-lg text-gray-900 truncate">{p.title || 'Sin título'}</div>
+                    <PublicacionBadge estado={p.publicacionEstado} />
+                  </div>
                   <div className="flex items-center text-sm text-gray-500 gap-1 truncate">
                     <MapPin className="h-4 w-4 mr-1" />
                     <span>{p.city}</span>
@@ -314,8 +344,10 @@ export default function AgentPanel() {
                 </div>
                 {/* Precio + Estado + Acciones */}
                 <div className="flex flex-col items-end gap-3 min-w-[200px]">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl font-extrabold text-indigo-700">{formatPrice(p.price, p.currency)}</span>
+                  <div className="flex items-center gap-3 flex-wrap justify-end">
+                    <span className="text-2xl font-extrabold text-indigo-700">
+                      {p.price ? formatPrice(p.price, p.currency) : '—'}
+                    </span>
                     {p.ocultarPrecio && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600" title="Precio oculto al público">
                         <EyeOff className="h-3.5 w-3.5" />
@@ -329,7 +361,14 @@ export default function AgentPanel() {
                       className="p-2 rounded-lg hover:bg-indigo-50 transition group"
                       title="Ver"
                       aria-label="Ver"
-                      onClick={e => { e.stopPropagation(); navigate(`/propiedad/${p.id}`); }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        navigate(
+                          p.publicacionEstado === 'BORRADOR'
+                            ? `/propiedad/editar/${p.id}`
+                            : `/propiedad/${p.id}`
+                        );
+                      }}
                     >
                       <ExternalLink className="h-5 w-5 text-gray-400 group-hover:text-indigo-600" />
                     </button>
