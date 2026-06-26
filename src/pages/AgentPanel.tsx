@@ -183,7 +183,11 @@ export default function AgentPanel() {
               </p>
             ) : (
               <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-lg inline-block">
-                Sin WhatsApp cargado — los visitantes no podrán contactarte por esa vía.
+                Sin WhatsApp cargado —{' '}
+                <Link to="/dashboard/perfil" className="font-semibold underline hover:text-amber-900">
+                  completá tu perfil
+                </Link>{' '}
+                para que los visitantes puedan contactarte.
               </p>
             )}
           </div>

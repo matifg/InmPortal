@@ -9,6 +9,7 @@ import PropertyForm from './pages/PropertyForm';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import EditProperty from './pages/EditProperty'; // 🔥 IMPORTANTE
+import AgentProfile from './pages/AgentProfile';
 import AdminDashboard from './pages/AdminDashboard';
 
 import ProtectedRoute from './components/ProtectedRoute';
@@ -45,6 +46,11 @@ function AppLayout() {
             <Route path="/dashboard/nueva-propiedad" element={
               <ProtectedRoute requiredRole="AGENTE">
                 <PropertyForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/perfil" element={
+              <ProtectedRoute requiredRole="AGENTE">
+                <AgentProfile />
               </ProtectedRoute>
             } />
 

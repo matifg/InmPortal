@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Property, AgentContact } from '../types';
-import { phoneForTel, phoneForWhatsApp, resolveAgentContact } from '../lib/agentContact';
+import { phoneForWhatsApp, resolveAgentContact } from '../lib/agentContact';
 import { collectPropertyImages } from '../lib/propertyImages';
 import PropertyGallery from '../components/PropertyGallery';
 import PropertyDetailSkeleton from '../components/PropertyDetailSkeleton';
@@ -13,9 +13,6 @@ import {
   Bath,
   Square,
   Home as HomeIcon,
-  Phone,
-  Mail,
-  MessageCircle,
   Share2,
   ChevronRight,
   ChevronDown,
@@ -28,122 +25,11 @@ import toast from 'react-hot-toast';
 
 const DESC_COLLAPSE_LEN = 420;
 
-function ContactCard({
-  property,
-  agentName,
-  agentInitial,
-  agentSubtitle,
-  tel,
-  email,
-  contactForm,
-  setContactForm,
-  onSubmit,
-  compact,
-}: {
-  property: Property;
-  agentName: string;
-  agentInitial: string;
-  agentSubtitle: string;
-  tel?: string;
-  email?: string;
-  contactForm: { nombre: string; email: string; mensaje: string };
-  setContactForm: React.Dispatch<React.SetStateAction<{ nombre: string; email: string; mensaje: string }>>;
-  onSubmit: (e: React.FormEvent) => void;
-  compact?: boolean;
-}) {
+function WhatsAppIcon({ className = '' }: { className?: string }) {
   return (
-    <div
-      id={compact ? undefined : 'agent-contact'}
-      className={`bg-white rounded-2xl shadow-sm border border-gray-200 ${
-        compact ? 'p-5' : 'p-6'
-      }`}
-    >
-      {!compact && (
-        <h3 className="text-lg font-bold text-gray-900 mb-5">Tu agente</h3>
-      )}
-
-      <div className={`flex items-center gap-4 ${compact ? 'mb-4' : 'mb-5 pb-5 border-b border-gray-100'}`}>
-        <div className="h-14 w-14 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-2xl flex items-center justify-center shrink-0 border border-indigo-100">
-          <span className="text-xl font-bold text-indigo-600">{agentInitial}</span>
-        </div>
-        <div className="min-w-0">
-          <p className="font-bold text-gray-900 truncate text-base">{agentName}</p>
-          <p className="text-sm text-gray-500">{agentSubtitle}</p>
-        </div>
-      </div>
-
-      <div className="space-y-2.5 mb-5">
-        {tel ? (
-          <>
-            <a
-              href={`https://wa.me/${phoneForWhatsApp(tel)}?text=${encodeURIComponent(
-                property.ocultarPrecio
-                  ? `Hola ${agentName}, me interesa "${property.title}". ¿Podrías indicarme el precio?`
-                  : `Hola ${agentName}, me interesa: ${property.title}`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors duration-200"
-            >
-              <MessageCircle className="h-5 w-5" />
-              WhatsApp
-            </a>
-            <a
-              href={`tel:${phoneForTel(tel)}`}
-              className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors duration-200 text-sm"
-            >
-              <Phone className="h-4 w-4" />
-              Llamar
-            </a>
-          </>
-        ) : (
-          <p className="text-sm text-gray-500 text-center py-2">Teléfono no disponible.</p>
-        )}
-        {email && (
-          <a
-            href={`mailto:${email}?subject=${encodeURIComponent(`Consulta: ${property.title}`)}`}
-            className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-5 py-2.5 rounded-xl font-medium transition-colors duration-200 text-sm"
-          >
-            <Mail className="h-4 w-4" />
-            Email
-          </a>
-        )}
-      </div>
-
-      {!compact && (
-        <form onSubmit={onSubmit} className="space-y-3 border-t border-gray-100 pt-5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Consulta por email</p>
-          <input
-            type="text"
-            placeholder="Tu nombre"
-            value={contactForm.nombre}
-            onChange={(e) => setContactForm((f) => ({ ...f, nombre: e.target.value }))}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none transition-colors duration-200"
-          />
-          <input
-            type="email"
-            placeholder="Tu email"
-            value={contactForm.email}
-            onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none transition-colors duration-200"
-          />
-          <textarea
-            rows={3}
-            placeholder="Me interesa esta propiedad..."
-            value={contactForm.mensaje}
-            onChange={(e) => setContactForm((f) => ({ ...f, mensaje: e.target.value }))}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 outline-none resize-none transition-colors duration-200"
-          />
-          <button
-            type="submit"
-            disabled={!email}
-            className="w-full bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white px-5 py-3 rounded-xl text-sm font-semibold transition-colors duration-200"
-          >
-            Solicitar información
-          </button>
-        </form>
-      )}
-    </div>
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
+    </svg>
   );
 }
 
@@ -157,11 +43,6 @@ export default function PropertyDetail() {
   const [loading, setLoading] = useState(true);
   const [descExpanded, setDescExpanded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [contactForm, setContactForm] = useState({
-    nombre: '',
-    email: '',
-    mensaje: '',
-  });
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -282,32 +163,6 @@ export default function PropertyDetail() {
     });
   };
 
-  const scrollToContact = () => {
-    document.getElementById('agent-contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!agent?.email) {
-      toast.error('Este agente no tiene email de contacto configurado.');
-      return;
-    }
-    if (!contactForm.nombre.trim() || !contactForm.email.trim()) {
-      toast.error('Completá tu nombre y email.');
-      return;
-    }
-
-    const subject = encodeURIComponent(`Consulta: ${property?.title ?? 'Propiedad'}`);
-    const body = encodeURIComponent(
-      `Hola ${agent.nombre},\n\n` +
-        `Me interesa la propiedad: ${property?.title ?? ''}\n` +
-        `${property?.address ? `Dirección: ${property.address}, ${property.city}\n` : ''}` +
-        `\n${contactForm.mensaje}\n\n` +
-        `— ${contactForm.nombre}\n${contactForm.email}`
-    );
-    window.location.href = `mailto:${agent.email}?subject=${subject}&body=${body}`;
-  };
-
   if (loading) return <PropertyDetailSkeleton />;
 
   if (!property) {
@@ -329,10 +184,10 @@ export default function PropertyDetail() {
 
   const images = collectPropertyImages(property);
   const agentName = agent?.nombre ?? 'Agente inmobiliario';
-  const agentInitial = agentName.charAt(0).toUpperCase();
-  const agentSubtitle = agent?.inmobiliaria ?? 'Inmo360';
   const tel = agent?.telefono;
-  const email = agent?.email;
+  // TODO: cuando el backend envíe telefonoAgente, utilizar esa propiedad para decidir si se muestra el botón.
+  const telefonoAgente = tel;
+  const hasAgentPhone = Boolean(telefonoAgente?.trim());
   const currencyInfo = getCurrencyInfo(property.currency);
 
   const mapQuery = encodeURIComponent(
@@ -350,21 +205,9 @@ export default function PropertyDetail() {
     ? `Hola ${agentName}, me interesa "${property.title}". ¿Podrías indicarme el precio?`
     : `Hola ${agentName}, me interesa: ${property.title}`;
 
-  const whatsappUrl = tel
-    ? `https://wa.me/${phoneForWhatsApp(tel)}?text=${encodeURIComponent(whatsappMessage)}`
+  const whatsappUrl = hasAgentPhone
+    ? `https://wa.me/${phoneForWhatsApp(telefonoAgente!)}?text=${encodeURIComponent(whatsappMessage)}`
     : null;
-
-  const contactProps = {
-    property,
-    agentName,
-    agentInitial,
-    agentSubtitle,
-    tel,
-    email,
-    contactForm,
-    setContactForm,
-    onSubmit: handleContactSubmit,
-  };
 
   const specs = [
     { value: property.bedrooms, label: 'Habitaciones', emoji: '🛏' },
@@ -446,26 +289,21 @@ export default function PropertyDetail() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-2.5">
-        {whatsappUrl ? (
+      <div>
+        {hasAgentPhone && whatsappUrl ? (
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors duration-200 shadow-sm"
+            className="w-full flex items-center justify-center gap-2.5 bg-[#25D366] hover:bg-[#20BD5A] text-white px-5 py-3.5 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
           >
-            <MessageCircle className="h-5 w-5" />
-            Contactar
+            <WhatsAppIcon className="h-5 w-5 shrink-0" />
+            Contactar por WhatsApp
           </a>
         ) : (
-          <button
-            type="button"
-            onClick={scrollToContact}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-semibold transition-colors duration-200 shadow-sm"
-          >
-            <Mail className="h-5 w-5" />
-            Contactar
-          </button>
+          <p className="text-sm text-gray-500 text-center py-3 px-4 rounded-xl bg-gray-50 border border-gray-100 leading-relaxed">
+            Este agente aún no configuró un número de contacto.
+          </p>
         )}
       </div>
 
@@ -613,16 +451,8 @@ export default function PropertyDetail() {
 
           {/* Sidebar sticky — desktop */}
           <aside className="hidden lg:block lg:col-span-1">
-            <div className="sticky top-20 space-y-6">
-              {priceCard}
-              <ContactCard {...contactProps} />
-            </div>
+            <div className="sticky top-20">{priceCard}</div>
           </aside>
-        </div>
-
-        {/* Agente — mobile */}
-        <div className="mt-6 lg:hidden">
-          <ContactCard {...contactProps} compact />
         </div>
       </div>
 
@@ -656,10 +486,10 @@ export default function PropertyDetail() {
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-semibold shadow-md transition-colors duration-200"
+              className="shrink-0 flex items-center gap-2 bg-[#25D366] hover:bg-[#20BD5A] text-white px-4 py-3 rounded-xl font-semibold shadow-md transition-all duration-200 text-sm"
             >
-              <MessageCircle className="h-5 w-5" />
-              {property.ocultarPrecio ? 'Consultar' : 'WhatsApp'}
+              <WhatsAppIcon className="h-5 w-5 shrink-0" />
+              WhatsApp
             </a>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Building2, Search, Clock } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Building2, Search, Clock, Home } from 'lucide-react';
 
 type LoginMode = 'visitante' | 'agente';
 
@@ -13,6 +13,9 @@ const MODE_CONFIG = {
     tabActive: 'bg-emerald-600 text-white shadow',
     link: 'text-emerald-600',
     inputFocus: 'focus:border-emerald-500 focus:ring-emerald-500/20',
+    exploreBtn:
+      'border-2 border-emerald-600 text-emerald-700 bg-emerald-50/80 hover:bg-emerald-100 hover:border-emerald-700 shadow-sm',
+    exploreIcon: 'text-emerald-600',
   },
   agente: {
     subtitle: 'Gestioná tus propiedades desde un solo lugar',
@@ -22,6 +25,9 @@ const MODE_CONFIG = {
     tabActive: 'bg-indigo-600 text-white shadow',
     link: 'text-indigo-600',
     inputFocus: 'focus:border-indigo-500 focus:ring-indigo-500/20',
+    exploreBtn:
+      'bg-emerald-600 text-white border border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700 shadow-md hover:shadow-lg',
+    exploreIcon: 'text-white',
   },
 } as const;
 
@@ -206,6 +212,17 @@ export default function Login() {
               Registrate
             </button>
           </p>
+
+          <div className="pt-4 mt-1 border-t border-slate-100 space-y-3">
+            <p className="text-center text-sm text-slate-600">¿Solo querés explorar propiedades?</p>
+            <Link
+              to="/propiedades"
+              className={`w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200 ${cfg.exploreBtn}`}
+            >
+              <Home className={`h-4 w-4 ${cfg.exploreIcon}`} />
+              Explorar catálogo
+            </Link>
+          </div>
         </div>
       </div>
     </div>

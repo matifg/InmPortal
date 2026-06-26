@@ -91,14 +91,22 @@ export default function Navbar() {
     if (role === 'AGENTE') {
       const panelActive =
         location.pathname === '/dashboard' ||
-        location.pathname.startsWith('/dashboard/') ||
+        (location.pathname.startsWith('/dashboard/') &&
+          !location.pathname.startsWith('/dashboard/perfil')) ||
         location.pathname.startsWith('/propiedad/editar');
+      const profileActive = location.pathname === '/dashboard/perfil';
 
       return (
-        <Link to="/dashboard" className={navLinkClass(panelActive)}>
-          <LayoutDashboard className="h-5 w-5" />
-          Mis propiedades
-        </Link>
+        <>
+          <Link to="/dashboard" className={navLinkClass(panelActive)}>
+            <LayoutDashboard className="h-5 w-5" />
+            Mis propiedades
+          </Link>
+          <Link to="/dashboard/perfil" className={navLinkClass(profileActive)}>
+            <UserCircle className="h-5 w-5" />
+            Mi perfil
+          </Link>
+        </>
       );
     }
 
@@ -134,12 +142,12 @@ export default function Navbar() {
               onClick={() => {
                 setDropdown(false);
                 if (role === 'ADMIN') navigate('/admin');
-                else if (role === 'AGENTE') navigate('/dashboard');
+                else if (role === 'AGENTE') navigate('/dashboard/perfil');
               }}
               className="w-full flex items-center gap-2 text-left px-4 py-2 rounded-md text-slate-700 hover:bg-slate-50 hover:text-indigo-700 transition-all duration-200"
             >
               <UserCircle className="h-5 w-5" />
-              Mi cuenta
+              Mi perfil
             </button>
             <button
               onClick={logout}
