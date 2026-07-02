@@ -607,7 +607,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
   const totalImages = gridItems.length;
   const imagesMissing = totalImages === 0 && !!errorMsg;
   const isDraft = initialData?.publicacionEstado === 'BORRADOR';
-  const publishLabel = isEdit && !isDraft ? 'Guardar cambios' : 'Publicar';
+  const publishLabel = 'Publicar';
 
   const progressSteps = useMemo((): ProgressStep[] => [
     {

@@ -12,6 +12,7 @@ interface HeroSectionProps {
   onSearch: () => void;
   onClear: () => void;
   canClear: boolean;
+  onScrollToListado?: () => void;
 }
 
 const fieldClass =
@@ -19,7 +20,7 @@ const fieldClass =
 
 const labelClass = 'text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5 text-left';
 
-export default function HeroSection({ filters, onFiltersChange, onSearch, onClear, canClear }: HeroSectionProps) {
+export default function HeroSection({ filters, onFiltersChange, onSearch, onClear, canClear, onScrollToListado }: HeroSectionProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [videoReady, setVideoReady] = useState(false);
@@ -209,6 +210,22 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
           </div>
         </form>
       </div>
+
+      {onScrollToListado && (
+        <div className="absolute bottom-8 left-0 right-0 z-10 flex justify-center px-4 pointer-events-none">
+          <div className="pointer-events-auto motion-reduce:animate-none animate-float-y">
+            <button
+              type="button"
+              onClick={onScrollToListado}
+              className="inline-flex items-center gap-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg shadow-indigo-900/30 ring-1 ring-white/25 rounded-2xl px-6 py-3.5 text-sm sm:text-base transition-all duration-200 hover:scale-[1.03] active:scale-95"
+              aria-label="Ver listado de propiedades"
+            >
+              Ver propiedades
+              <ChevronDown className="h-5 w-5 shrink-0" aria-hidden />
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

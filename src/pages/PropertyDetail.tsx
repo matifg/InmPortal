@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Pencil,
   Heart,
+  Eye,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -124,11 +125,6 @@ export default function PropertyDetail() {
     };
   }, []);
 
-  const canEdit =
-    !!property &&
-    !!currentAgentId &&
-    String(property.agentId) === currentAgentId;
-
   const getCurrencyInfo = (currency?: string) => {
     if (!currency) return { symbol: '$', label: 'Pesos' };
     if (currency === 'USD') return { symbol: 'USD', label: 'Dólares' };
@@ -183,6 +179,13 @@ export default function PropertyDetail() {
   }
 
   const images = collectPropertyImages(property);
+
+  const isOwner =
+    !!currentAgentId && String(property.agentId) === currentAgentId;
+  const isVisitor = !isOwner;
+
+  const isPublished = property.publicacionEstado !== 'BORRADOR';
+
   const agentName = agent?.nombre ?? 'Agente inmobiliario';
   const tel = agent?.telefono;
   // TODO: cuando el backend envíe telefonoAgente, utilizar esa propiedad para decidir si se muestra el botón.
@@ -218,6 +221,9 @@ export default function PropertyDetail() {
 
   const secondaryActionBtn =
     'flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 hover:border-gray-300 transition-all duration-200';
+
+  const ownerActionBtn =
+    'w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200';
 
   const priceCard = (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 space-y-4">
@@ -262,7 +268,9 @@ export default function PropertyDetail() {
       {property.ocultarPrecio ? (
         <div>
           <p className="text-2xl sm:text-3xl font-bold text-indigo-600">Consultar precio</p>
-          <p className="text-sm text-gray-500 mt-1">Contactá al agente para más info</p>
+          {isVisitor && (
+            <p className="text-sm text-gray-500 mt-1">Contactá al agente para más info</p>
+          )}
         </div>
       ) : (
         <div>
@@ -289,49 +297,98 @@ export default function PropertyDetail() {
         </p>
       </div>
 
-      <div>
-        {hasAgentPhone && whatsappUrl ? (
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2.5 bg-[#25D366] hover:bg-[#20BD5A] text-white px-5 py-3.5 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
-          >
-            <WhatsAppIcon className="h-5 w-5 shrink-0" />
-            Contactar por WhatsApp
-          </a>
-        ) : (
-          <p className="text-sm text-gray-500 text-center py-3 px-4 rounded-xl bg-gray-50 border border-gray-100 leading-relaxed">
-            Este agente aún no configuró un número de contacto.
-          </p>
-        )}
-      </div>
+      {isVisitor && (
+        <>
+          <div>
+            {hasAgentPhone && whatsappUrl ? (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2.5 bg-[#25D366] hover:bg-[#20BD5A] text-white px-5 py-3.5 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                <WhatsAppIcon className="h-5 w-5 shrink-0" />
+                Contactar por WhatsApp
+              </a>
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-3 px-4 rounded-xl bg-gray-50 border border-gray-100 leading-relaxed">
+                Este agente aún no configuró un número de contacto.
+              </p>
+            )}
+          </div>
 
-      <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-        {canEdit && (
-          <button
-            type="button"
-            onClick={() => navigate(`/propiedad/editar/${property.id}`)}
-            className={`${secondaryActionBtn} text-indigo-700 border-indigo-100 bg-indigo-50 hover:bg-indigo-100`}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Editar
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={toggleFavorite}
-          className={`${secondaryActionBtn} ${isFavorite ? 'text-red-500 border-red-200 bg-red-50 hover:bg-red-50' : ''}`}
-          aria-label="Favoritos"
-        >
-          <Heart className={`h-3.5 w-3.5 ${isFavorite ? 'fill-current' : ''}`} />
-          Favoritos
-        </button>
-        <button type="button" onClick={handleShare} className={secondaryActionBtn}>
-          <Share2 className="h-3.5 w-3.5" />
-          Compartir
-        </button>
-      </div>
+          <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={toggleFavorite}
+              className={`${secondaryActionBtn} ${isFavorite ? 'text-red-500 border-red-200 bg-red-50 hover:bg-red-50' : ''}`}
+              aria-label="Favoritos"
+            >
+              <Heart className={`h-3.5 w-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+              Favoritos
+            </button>
+            <button type="button" onClick={handleShare} className={secondaryActionBtn}>
+              <Share2 className="h-3.5 w-3.5" />
+              Compartir
+            </button>
+          </div>
+        </>
+      )}
+
+      {isOwner && (
+        <div className="space-y-4 pt-1 border-t border-gray-100">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Estás viendo tu publicación</p>
+            <span
+              className={`inline-flex items-center gap-1.5 mt-2 text-xs font-semibold px-3 py-1 rounded-full border ${
+                isPublished
+                  ? 'text-emerald-700 bg-emerald-50 border-emerald-100'
+                  : 'text-amber-700 bg-amber-50 border-amber-100'
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${isPublished ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                aria-hidden
+              />
+              {isPublished ? 'Publicada' : 'Borrador'}
+            </span>
+          </div>
+
+          {/* // Estadísticas de visualizaciones */}
+          {/* // Cantidad de contactos recibidos */}
+          {/* // Fecha de publicación */}
+          {/* // Estado de la publicación */}
+
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              onClick={() => navigate(`/propiedad/editar/${property.id}`)}
+              className={`${ownerActionBtn} bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm`}
+            >
+              <Pencil className="h-4 w-4" />
+              Editar propiedad
+            </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              className={`${ownerActionBtn} border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300`}
+            >
+              <Share2 className="h-4 w-4" />
+              Compartir publicación
+            </button>
+            <button
+              type="button"
+              disabled
+              title="Próximamente"
+              className={`${ownerActionBtn} border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60`}
+            >
+              {/* // TODO: Implementar modo vista visitante. */}
+              <Eye className="h-4 w-4" />
+              Ver como visitante
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -456,8 +513,8 @@ export default function PropertyDetail() {
         </div>
       </div>
 
-      {/* Barra fija mobile */}
-      {whatsappUrl && (
+      {/* Barra fija mobile — visitante */}
+      {isVisitor && whatsappUrl && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-md px-4 py-3 safe-area-pb shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
           <div className="flex items-center gap-3 max-w-7xl mx-auto">
             <button
@@ -491,6 +548,30 @@ export default function PropertyDetail() {
               <WhatsAppIcon className="h-5 w-5 shrink-0" />
               WhatsApp
             </a>
+          </div>
+        </div>
+      )}
+
+      {/* Barra fija mobile — propietario */}
+      {isOwner && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-md px-4 py-3 safe-area-pb shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center gap-2 max-w-7xl mx-auto">
+            <button
+              type="button"
+              onClick={() => navigate(`/propiedad/editar/${property.id}`)}
+              className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl font-semibold text-sm transition-colors"
+            >
+              <Pencil className="h-4 w-4" />
+              Editar
+            </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              className="flex-1 flex items-center justify-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-3 rounded-xl font-semibold text-sm transition-colors"
+            >
+              <Share2 className="h-4 w-4" />
+              Compartir
+            </button>
           </div>
         </div>
       )}

@@ -8,14 +8,17 @@ import AgentPanel from './pages/AgentPanel';
 import PropertyForm from './pages/PropertyForm';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import RegisterConfirm from './pages/RegisterConfirm';
+import VerifyEmail from './pages/VerifyEmail';
 import EditProperty from './pages/EditProperty'; // 🔥 IMPORTANTE
 import AgentProfile from './pages/AgentProfile';
 import AdminDashboard from './pages/AdminDashboard';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import SessionManager from './components/SessionManager';
+import ScrollToTop from './components/ScrollToTop';
 
-const AUTH_PATHS = ['/login', '/register'];
+const AUTH_PATHS = ['/login', '/register', '/registro/confirmacion', '/verificar-email'];
 
 function AppLayout() {
   const location = useLocation();
@@ -36,6 +39,8 @@ function AppLayout() {
             {/* AUTH */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/registro/confirmacion" element={<RegisterConfirm />} />
+            <Route path="/verificar-email" element={<VerifyEmail />} />
 
             {/* AGENTE — rutas canónicas */}
             <Route path="/dashboard" element={
@@ -82,6 +87,7 @@ export default function App() {
   return (
     <Router>
       <SessionManager />
+      <ScrollToTop />
       <AppLayout />
     </Router>
   );

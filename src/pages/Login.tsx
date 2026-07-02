@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Building2, Search, Clock, Home } from 'lucide-react';
+import { Building2, Search, Clock, Home, Eye, EyeOff } from 'lucide-react';
 
 type LoginMode = 'visitante' | 'agente';
 
@@ -41,6 +41,7 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const cfg = MODE_CONFIG[mode];
 
@@ -183,16 +184,26 @@ export default function Login() {
               className={`w-full px-3 py-2.5 rounded-lg border border-gray-200 outline-none transition ring-2 ring-transparent text-sm ${cfg.inputFocus}`}
               autoComplete="email"
             />
-            <input
-              type="password"
-              name="password"
-              placeholder="Contraseña"
-              value={form.password}
-              onChange={handleChange}
-              required
-              className={`w-full px-3 py-2.5 rounded-lg border border-gray-200 outline-none transition ring-2 ring-transparent text-sm ${cfg.inputFocus}`}
-              autoComplete="current-password"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                placeholder="Contraseña"
+                value={form.password}
+                onChange={handleChange}
+                required
+                className={`w-full px-3 py-2.5 pr-10 rounded-lg border border-gray-200 outline-none transition ring-2 ring-transparent text-sm ${cfg.inputFocus}`}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             <button
               type="submit"
               disabled={loading}

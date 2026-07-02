@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, Building2 } from 'lucide-react';
+import { Search, Building2, Eye, EyeOff } from 'lucide-react';
 import {
   AR_MOBILE_PHONE_PLACEHOLDER,
   AR_MOBILE_PHONE_ERROR,
@@ -48,6 +48,7 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showAgentConfirm, setShowAgentConfirm] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({
     nombre: '',
@@ -133,7 +134,7 @@ export default function Register() {
         body: JSON.stringify({ ...form, telefono, rol: role }),
       });
       if (res.ok) {
-        navigate('/login', { state: { registerSuccess: true } });
+        navigate('/registro/confirmacion', { state: { email: form.email.trim(), role } });
       } else {
         const data = await res.json();
         setError(data.message || 'Error al registrar');
@@ -282,15 +283,23 @@ export default function Register() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start">
-              <div>
+              <div className="relative">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   placeholder="Contraseña (mín. 6 caracteres)"
                   value={form.password}
                   onChange={handleChange}
-                  className={inputClass}
+                  className={`${inputClass} pr-10`}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
                 {fieldErrors.password && <p className="text-red-500 text-xs mt-0.5">{fieldErrors.password}</p>}
               </div>
               <button

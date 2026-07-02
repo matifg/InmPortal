@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import HeroSection from '../components/HeroSection';
+import ScrollFab from '../components/ScrollFab';
 import PropertyCard from '../components/PropertyCard';
 import { api } from '../services/api';
 import { Property } from '../types';
@@ -161,7 +162,10 @@ export default function Home() {
         onSearch={handleSearch}
         onClear={handleClearFilters}
         canClear={canClearFilters}
+        onScrollToListado={scrollToListado}
       />
+
+      <ScrollFab listadoRef={listadoRef} />
 
       <main
         id="listado"
