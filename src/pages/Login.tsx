@@ -31,6 +31,26 @@ const MODE_CONFIG = {
   },
 } as const;
 
+async function getLoginErrorMessage(res: Response): Promise<string> {
+  if (res.status === 401) {
+    return 'Credenciales inválidas';
+  }
+
+  if (res.status === 403) {
+    try {
+      const data = await res.json();
+      if (typeof data?.message === 'string' && data.message.trim()) {
+        return data.message;
+      }
+    } catch {
+      // ignore parse errors
+    }
+    return 'Debés verificar tu correo electrónico antes de iniciar sesión.';
+  }
+
+  return 'No pudimos iniciar sesión. Intentá de nuevo más tarde.';
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -86,7 +106,9 @@ export default function Login() {
         body: JSON.stringify(form),
       });
 
-      if (!res.ok) throw new Error('Credenciales inválidas');
+      if (!res.ok) {
+        throw new Error(await getLoginErrorMessage(res));
+      }
 
       const data = await res.json();
 
