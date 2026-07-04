@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import AuthBranding from '../components/AuthBranding';
 
 type VerifyState = 'loading' | 'success' | 'error';
 
@@ -84,7 +85,7 @@ export default function VerifyEmail() {
   }, [token]);
 
   return (
-    <div className="relative min-h-dvh flex items-center justify-center p-4 sm:p-6 bg-slate-950">
+    <div className="relative min-h-full flex items-center justify-center p-3 sm:p-4 py-4 bg-slate-950">
       <div
         className="absolute inset-0 bg-cover bg-center opacity-30"
         style={{ backgroundImage: "url('/casa-login.jpg')" }}
@@ -92,8 +93,9 @@ export default function VerifyEmail() {
       />
       <div className="absolute inset-0 bg-indigo-950/80" aria-hidden />
 
-      <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-6 sm:px-8 py-8 text-center">
-        <div className="mb-6">
+      <div className="relative z-10 w-full max-w-md flex flex-col items-center">
+      <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-5 sm:py-6 text-center">
+        <div className="mb-4">
           <span className="text-2xl font-extrabold text-slate-800 tracking-tight">Inmo360</span>
         </div>
 
@@ -143,6 +145,9 @@ export default function VerifyEmail() {
             </Link>
           </div>
         )}
+
+        </div>
+        <AuthBranding detached />
       </div>
     </div>
   );

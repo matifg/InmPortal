@@ -7,6 +7,7 @@ import {
   isValidArMobilePhone,
   normalizeArMobileDigits,
 } from '../lib/agentContact';
+import AuthBranding from '../components/AuthBranding';
 
 type RegisterRole = 'CLIENTE' | 'AGENTE';
 
@@ -200,8 +201,9 @@ export default function Register() {
         </div>
       )}
 
-      <div className="relative z-10 h-full flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-2xl bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-6 sm:px-8 py-5 sm:py-6 flex flex-col gap-3 sm:gap-4">
+      <div className="relative z-10 min-h-full flex items-center justify-center p-3 sm:p-4 py-4">
+        <div className="w-full max-w-2xl flex flex-col items-center">
+        <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-4 sm:py-5 flex flex-col gap-2.5 sm:gap-3">
           <div className="flex gap-1.5 p-1 bg-slate-100 rounded-xl">
             <button
               type="button"
@@ -324,6 +326,9 @@ export default function Register() {
               Iniciar sesión
             </button>
           </p>
+
+        </div>
+          <AuthBranding detached />
         </div>
       </div>
     </div>

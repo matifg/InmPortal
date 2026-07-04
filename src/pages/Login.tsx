@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Building2, Search, Clock, Home, Eye, EyeOff } from 'lucide-react';
+import AuthBranding from '../components/AuthBranding';
 
 type LoginMode = 'visitante' | 'agente';
 
@@ -142,8 +143,9 @@ export default function Login() {
       />
       <div className={`absolute inset-0 transition-colors duration-500 ${cfg.overlay}`} />
 
-      <div className="relative z-10 h-full flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-6 sm:px-8 py-6 flex flex-col gap-4">
+      <div className="relative z-10 min-h-full flex items-center justify-center p-3 sm:p-4 py-4">
+        <div className="w-full max-w-md flex flex-col items-center">
+        <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-4 sm:py-5 flex flex-col gap-2.5">
           {sessionEnded && (
             <div className="flex flex-col items-center justify-center text-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
               <Clock className="h-6 w-6 text-amber-600" />
@@ -180,8 +182,8 @@ export default function Login() {
           </div>
 
           <div className="text-center">
-            <h2 className="text-xl font-bold text-gray-900">Acceso a tu cuenta</h2>
-            <p className="text-gray-500 text-xs sm:text-sm mt-0.5">{cfg.subtitle}</p>
+            <h2 className="text-lg font-bold text-gray-900">Acceso a tu cuenta</h2>
+            <p className="text-gray-500 text-xs mt-0.5">{cfg.subtitle}</p>
           </div>
 
           {registerMsg && (
@@ -195,7 +197,7 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
             <input
               type="email"
               name="email"
@@ -203,7 +205,7 @@ export default function Login() {
               value={form.email}
               onChange={handleChange}
               required
-              className={`w-full px-3 py-2.5 rounded-lg border border-gray-200 outline-none transition ring-2 ring-transparent text-sm ${cfg.inputFocus}`}
+              className={`w-full px-3 py-2 rounded-lg border border-gray-200 outline-none transition ring-2 ring-transparent text-sm ${cfg.inputFocus}`}
               autoComplete="email"
             />
             <div className="relative">
@@ -214,7 +216,7 @@ export default function Login() {
                 value={form.password}
                 onChange={handleChange}
                 required
-                className={`w-full px-3 py-2.5 pr-10 rounded-lg border border-gray-200 outline-none transition ring-2 ring-transparent text-sm ${cfg.inputFocus}`}
+                className={`w-full px-3 py-2 pr-10 rounded-lg border border-gray-200 outline-none transition ring-2 ring-transparent text-sm ${cfg.inputFocus}`}
                 autoComplete="current-password"
               />
               <button
@@ -229,33 +231,43 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-2.5 rounded-lg font-semibold text-white text-sm transition cursor-pointer shadow-md focus:ring-2 ${cfg.button} ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full py-2 rounded-lg font-semibold text-white text-sm transition cursor-pointer shadow-md focus:ring-2 ${cfg.button} ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {loading ? 'Ingresando...' : 'Ingresar'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500">
-            ¿No tenés cuenta?{' '}
-            <button
-              type="button"
-              className={`${cfg.link} hover:underline font-medium`}
-              onClick={() => navigate('/register', { state: { defaultRole: mode === 'agente' ? 'AGENTE' : 'CLIENTE' } })}
-            >
-              Registrate
-            </button>
-          </p>
+          <div className="space-y-1 text-center text-xs sm:text-sm">
+            <p>
+              <Link to="/recuperar-password" className={`${cfg.link} hover:underline font-medium`}>
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </p>
+            <p className="text-gray-500">
+              ¿No tenés cuenta?{' '}
+              <button
+                type="button"
+                className={`${cfg.link} hover:underline font-medium`}
+                onClick={() => navigate('/register', { state: { defaultRole: mode === 'agente' ? 'AGENTE' : 'CLIENTE' } })}
+              >
+                Registrate
+              </button>
+            </p>
+          </div>
 
-          <div className="pt-4 mt-1 border-t border-slate-100 space-y-3">
-            <p className="text-center text-sm text-slate-600">¿Solo querés explorar propiedades?</p>
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <p className="text-center text-xs text-slate-600">¿Solo querés explorar propiedades?</p>
             <Link
               to="/propiedades"
-              className={`w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200 ${cfg.exploreBtn}`}
+              className={`w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${cfg.exploreBtn}`}
             >
               <Home className={`h-4 w-4 ${cfg.exploreIcon}`} />
               Explorar catálogo
             </Link>
           </div>
+        </div>
+
+          <AuthBranding detached />
         </div>
       </div>
     </div>

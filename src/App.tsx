@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 
 import Home from './pages/Home';
 import PropertyDetail from './pages/PropertyDetail';
@@ -10,6 +11,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import RegisterConfirm from './pages/RegisterConfirm';
 import VerifyEmail from './pages/VerifyEmail';
+import RecuperarPassword from './pages/RecuperarPassword';
+import ResetPassword from './pages/ResetPassword';
 import EditProperty from './pages/EditProperty'; // 🔥 IMPORTANTE
 import AgentProfile from './pages/AgentProfile';
 import AdminDashboard from './pages/AdminDashboard';
@@ -18,7 +21,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import SessionManager from './components/SessionManager';
 import ScrollToTop from './components/ScrollToTop';
 
-const AUTH_PATHS = ['/login', '/register', '/registro/confirmacion', '/verificar-email'];
+const AUTH_PATHS = ['/login', '/register', '/registro/confirmacion', '/verificar-email', '/recuperar-password', '/restablecer-password'];
 
 function AppLayout() {
   const location = useLocation();
@@ -28,7 +31,7 @@ function AppLayout() {
     <div className={`font-sans text-gray-900 flex flex-col ${isAuthPage ? 'h-dvh overflow-hidden' : 'min-h-screen bg-gray-50'}`}>
       <Toaster position="top-right" />
       {!isAuthPage && <Navbar />}
-      <div className={isAuthPage ? 'flex-1 min-h-0' : 'flex-grow'}>
+      <div className={isAuthPage ? 'flex-1 min-h-0 overflow-y-auto' : 'flex-grow'}>
         <Routes>
 
             {/* PUBLICAS */}
@@ -41,6 +44,8 @@ function AppLayout() {
             <Route path="/register" element={<Register />} />
             <Route path="/registro/confirmacion" element={<RegisterConfirm />} />
             <Route path="/verificar-email" element={<VerifyEmail />} />
+            <Route path="/recuperar-password" element={<RecuperarPassword />} />
+            <Route path="/restablecer-password" element={<ResetPassword />} />
 
             {/* AGENTE — rutas canónicas */}
             <Route path="/dashboard" element={
@@ -79,6 +84,7 @@ function AppLayout() {
 
         </Routes>
       </div>
+      {!isAuthPage && <Footer />}
     </div>
   );
 }
