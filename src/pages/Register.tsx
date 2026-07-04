@@ -203,7 +203,7 @@ export default function Register() {
 
       <div className="relative z-10 min-h-full flex items-center justify-center p-3 sm:p-4 py-4">
         <div className="w-full max-w-2xl flex flex-col items-center">
-        <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-4 sm:py-5 flex flex-col gap-2.5 sm:gap-3">
+        <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-5 flex flex-col gap-3.5">
           <div className="flex gap-1.5 p-1 bg-slate-100 rounded-xl">
             <button
               type="button"
@@ -227,12 +227,12 @@ export default function Register() {
             </button>
           </div>
 
-          <div className="text-center">
+          <div className="text-center pt-0.5">
             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">{cfg.title}</h2>
-            <p className="text-slate-500 text-xs sm:text-sm mt-0.5">{cfg.subtitle}</p>
+            <p className="text-slate-500 text-xs sm:text-sm mt-1">{cfg.subtitle}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <input type="text" name="nombre" placeholder="Nombre" value={form.nombre} onChange={handleChange} className={inputClass} />

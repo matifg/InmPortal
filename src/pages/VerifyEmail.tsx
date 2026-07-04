@@ -94,20 +94,17 @@ export default function VerifyEmail() {
       <div className="absolute inset-0 bg-indigo-950/80" aria-hidden />
 
       <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-      <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-5 sm:py-6 text-center">
-        <div className="mb-4">
-          <span className="text-2xl font-extrabold text-slate-800 tracking-tight">Inmo360</span>
-        </div>
+      <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-5 flex flex-col gap-3.5 text-center">
 
         {state === 'loading' && (
-          <div className="flex flex-col items-center gap-4 py-4">
+          <div className="flex flex-col items-center gap-3.5 py-2">
             <Loader2 className="h-12 w-12 text-indigo-600 animate-spin" />
             <p className="text-slate-600 text-sm sm:text-base">Estamos verificando tu cuenta...</p>
           </div>
         )}
 
         {state === 'success' && (
-          <div className="flex flex-col items-center gap-4 py-2">
+          <div className="flex flex-col items-center gap-3.5 py-2">
             <div className="h-16 w-16 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100">
               <CheckCircle2 className="h-9 w-9 text-emerald-600" />
             </div>
@@ -129,7 +126,7 @@ export default function VerifyEmail() {
         )}
 
         {state === 'error' && (
-          <div className="flex flex-col items-center gap-4 py-2">
+          <div className="flex flex-col items-center gap-3.5 py-2">
             <div className="h-16 w-16 rounded-2xl bg-red-50 flex items-center justify-center border border-red-100">
               <XCircle className="h-9 w-9 text-red-600" />
             </div>

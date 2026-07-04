@@ -145,7 +145,7 @@ export default function Login() {
 
       <div className="relative z-10 min-h-full flex items-center justify-center p-3 sm:p-4 py-4">
         <div className="w-full max-w-md flex flex-col items-center">
-        <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-4 sm:py-5 flex flex-col gap-2.5">
+        <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-5 flex flex-col gap-3.5">
           {sessionEnded && (
             <div className="flex flex-col items-center justify-center text-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
               <Clock className="h-6 w-6 text-amber-600" />
@@ -153,10 +153,6 @@ export default function Login() {
               <p className="text-xs text-amber-700">Volvé a ingresar para continuar.</p>
             </div>
           )}
-
-          <div className="text-center">
-            <span className="text-2xl font-extrabold text-slate-800 tracking-tight">InmoPortal</span>
-          </div>
 
           <div className="flex gap-1.5 p-1 bg-slate-100 rounded-xl">
             <button
@@ -181,9 +177,9 @@ export default function Login() {
             </button>
           </div>
 
-          <div className="text-center">
-            <h2 className="text-lg font-bold text-gray-900">Acceso a tu cuenta</h2>
-            <p className="text-gray-500 text-xs mt-0.5">{cfg.subtitle}</p>
+          <div className="text-center pt-0.5">
+            <h2 className="text-xl font-bold text-gray-900">Acceso a tu cuenta</h2>
+            <p className="text-gray-500 text-xs sm:text-sm mt-1">{cfg.subtitle}</p>
           </div>
 
           {registerMsg && (
@@ -197,7 +193,7 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <input
               type="email"
               name="email"
@@ -237,7 +233,7 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="space-y-1 text-center text-xs sm:text-sm">
+          <div className="space-y-2 text-center text-xs sm:text-sm pt-0.5">
             <p>
               <Link to="/recuperar-password" className={`${cfg.link} hover:underline font-medium`}>
                 ¿Olvidaste tu contraseña?
@@ -255,7 +251,7 @@ export default function Login() {
             </p>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 space-y-2">
+          <div className="pt-3 mt-0.5 border-t border-slate-100 space-y-2.5">
             <p className="text-center text-xs text-slate-600">¿Solo querés explorar propiedades?</p>
             <Link
               to="/propiedades"

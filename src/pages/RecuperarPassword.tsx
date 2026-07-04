@@ -51,15 +51,11 @@ export default function RecuperarPassword() {
       <div className="absolute inset-0 bg-indigo-950/80" aria-hidden />
 
       <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-      <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-5 sm:py-6">
-        <div className="text-center mb-4">
-          <span className="text-2xl font-extrabold text-slate-800 tracking-tight">Inmo360</span>
-        </div>
-
+      <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-5 flex flex-col gap-3.5">
         {state === 'form' && (
           <>
-            <div className="text-center mb-6">
-              <h1 className="text-xl font-bold text-slate-900 mb-2">Recuperar contraseña</h1>
+            <div className="text-center">
+              <h1 className="text-xl font-bold text-slate-900 mb-1.5">Recuperar contraseña</h1>
               <p className="text-slate-600 text-sm leading-relaxed">
                 Ingresá el correo electrónico asociado a tu cuenta y te enviaremos un enlace para
                 restablecer tu contraseña.
@@ -101,7 +97,7 @@ export default function RecuperarPassword() {
               </button>
             </form>
 
-            <p className="text-center text-sm text-gray-500 mt-4">
+            <p className="text-center text-sm text-gray-500 pt-0.5">
               <Link to="/login" className="text-indigo-600 hover:underline font-medium">
                 Volver al login
               </Link>

@@ -113,10 +113,7 @@ export default function ResetPassword() {
       <div className="absolute inset-0 bg-indigo-950/80" aria-hidden />
 
       <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-      <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-5 sm:py-6">
-        <div className="text-center mb-4">
-          <span className="text-2xl font-extrabold text-slate-800 tracking-tight">Inmo360</span>
-        </div>
+      <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 px-5 sm:px-6 py-5 flex flex-col gap-3.5">
 
         {state === 'invalid-link' && (
           <div className="flex flex-col items-center gap-4 py-2 text-center">
@@ -140,8 +137,8 @@ export default function ResetPassword() {
 
         {state === 'form' && (
           <>
-            <div className="text-center mb-6">
-              <h1 className="text-xl font-bold text-slate-900 mb-2">Restablecer contraseña</h1>
+            <div className="text-center">
+              <h1 className="text-xl font-bold text-slate-900 mb-1.5">Restablecer contraseña</h1>
               <p className="text-slate-600 text-sm leading-relaxed">
                 Ingresá tu nueva contraseña para recuperar el acceso a tu cuenta.
               </p>
@@ -153,7 +150,7 @@ export default function ResetPassword() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
               <div>
                 <div className="relative">
                   <input
