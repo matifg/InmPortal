@@ -1,5 +1,8 @@
 const STORAGE_KEY = 'membresiaActiva';
 
+export const MEMBRESIA_INACTIVA_TOAST =
+  'Tu membresía está inactiva. Reactivala para volver a publicar y mostrar tus propiedades en el catálogo.';
+
 export function readMembresiaFromStorage(): boolean {
   const mem = localStorage.getItem(STORAGE_KEY);
   if (mem === null) return true;

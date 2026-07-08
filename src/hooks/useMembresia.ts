@@ -6,6 +6,12 @@ export function useMembresia(refreshOnMount = true) {
   const [checking, setChecking] = useState(refreshOnMount);
 
   const refresh = useCallback(async () => {
+    if (!localStorage.getItem('token')) {
+      setMembresiaActiva(readMembresiaFromStorage());
+      setChecking(false);
+      return readMembresiaFromStorage();
+    }
+
     setChecking(true);
     const active = await refreshMembresiaFromApi();
     setMembresiaActiva(active);
@@ -15,9 +21,31 @@ export function useMembresia(refreshOnMount = true) {
 
   useEffect(() => {
     if (refreshOnMount) {
-      refresh();
+      void refresh();
     }
   }, [refreshOnMount, refresh]);
+
+  useEffect(() => {
+    if (!localStorage.getItem('token')) return;
+
+    const handleRefresh = () => {
+      void refresh();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void refresh();
+      }
+    };
+
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [refresh]);
 
   return { membresiaActiva, checking, refresh, setMembresiaActiva };
 }

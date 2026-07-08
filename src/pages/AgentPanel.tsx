@@ -5,7 +5,8 @@ import { Property } from '../types';
 import { Plus, Edit, Trash2, Loader2, MapPin, ExternalLink, Home, Search, X, ChevronDown, EyeOff, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MembresiaBanner from '../components/MembresiaBanner';
-import { readMembresiaFromStorage, syncMembresiaFromAgentResponse } from '../lib/membresia';
+import { MEMBRESIA_INACTIVA_TOAST, syncMembresiaFromAgentResponse } from '../lib/membresia';
+import { useMembresia } from '../hooks/useMembresia';
 import { parseAgentContact } from '../lib/agentContact';
 
 // Badge UI mejorada
@@ -49,13 +50,13 @@ export default function AgentPanel() {
 
   // Nuevo: ordenamiento unificado
   const [order, setOrder] = useState('date-desc');
-  const [membresiaActiva, setMembresiaActiva] = useState(readMembresiaFromStorage);
+  const { membresiaActiva, setMembresiaActiva } = useMembresia(false);
   const [agentTelefono, setAgentTelefono] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
   const notifyMembresiaInactiva = () => {
-    toast.error('Activá tu membresía para publicar nuevas propiedades');
+    toast.error(MEMBRESIA_INACTIVA_TOAST);
   };
 
   // Nueva función para obtener el agente autenticado

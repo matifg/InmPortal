@@ -24,20 +24,26 @@ export default function MembresiaBanner({ membresiaActiva, className = '' }: Mem
   return (
     <div
       role="alert"
-      className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-amber-950 shadow-sm ${className}`}
+      className={`flex flex-col sm:flex-row sm:items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm ${className}`}
     >
-      <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" aria-hidden />
-      <p className="flex-1 min-w-[200px] text-sm">
-        <span className="font-semibold">Membresía inactiva.</span>{' '}
-        <span className="text-amber-900/90">
-          No podés publicar hasta que un administrador la active.
-        </span>
-      </p>
+      <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" aria-hidden />
+      <div className="flex-1 min-w-0 text-sm">
+        <p className="font-semibold">Membresía inactiva</p>
+        <p className="mt-1.5 text-amber-900/90">Mientras tu membresía permanezca inactiva:</p>
+        <ul className="mt-1 list-disc pl-5 space-y-0.5 text-amber-900/90">
+          <li>No podrás publicar nuevas propiedades.</li>
+          <li>Tus propiedades dejarán de mostrarse en el catálogo público.</li>
+        </ul>
+        <p className="mt-2 text-amber-900/90">
+          Cuando tu membresía sea reactivada, todas tus publicaciones volverán a estar visibles
+          automáticamente.
+        </p>
+      </div>
       <a
         href={WHATSAPP_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 transition"
+        className="inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-lg bg-emerald-600 px-3 py-1.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 transition"
       >
         <WhatsAppIcon className="h-4 w-4" />
         Contactar
