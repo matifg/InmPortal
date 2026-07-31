@@ -22,55 +22,42 @@ const labelClass = 'text-[11px] font-semibold uppercase tracking-wide text-slate
 
 export default function HeroSection({ filters, onFiltersChange, onSearch, onClear, canClear, onScrollToListado }: HeroSectionProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
 
   useEffect(() => {
-    const prefersReduced =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) {
-      setVideoEnabled(false);
-      return;
-    }
-
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const onChange = () => setVideoEnabled(!media.matches);
-    media.addEventListener('change', onChange);
-    return () => media.removeEventListener('change', onChange);
-  }, []);
-
-  useEffect(() => {
-    if (!videoEnabled) return;
+    if (videoFailed) return;
 
     const video = videoRef.current;
     if (!video) return;
 
+    const tryPlay = () => {
+      video.play().catch(() => {
+        /* autoplay bloqueado: el muted loop suele recuperarse al interactuar */
+      });
+    };
+
+    // Asegura reproducción apenas haya datos (src va en el markup).
+    if (video.readyState >= 2) {
+      setVideoReady(true);
+      tryPlay();
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          if (!video.src) video.src = HERO_VIDEO;
-          video.play().catch(() => {
-            /* autoplay bloqueado o error de carga */
-          });
-        } else {
-          video.pause();
-        }
+        if (entry.isIntersecting) tryPlay();
+        else video.pause();
       },
       { threshold: 0.15 }
     );
 
     observer.observe(video);
     return () => observer.disconnect();
-  }, [videoEnabled]);
+  }, [videoFailed]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch();
-  };
-
-  const handleVideoError = () => {
-    setVideoEnabled(false);
   };
 
   return (
@@ -80,27 +67,32 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
           src={HERO_POSTER}
           alt=""
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-            videoReady && videoEnabled ? 'opacity-0' : 'opacity-100'
+            videoReady && !videoFailed ? 'opacity-0' : 'opacity-100'
           }`}
           aria-hidden
           fetchPriority="high"
         />
 
-        {videoEnabled && (
+        {!videoFailed && (
           <video
             ref={videoRef}
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
               videoReady ? 'opacity-100' : 'opacity-0'
             }`}
+            src={HERO_VIDEO}
             muted
             loop
             playsInline
             autoPlay
-            preload="none"
+            preload="auto"
             poster={HERO_POSTER}
             aria-hidden
-            onCanPlay={() => setVideoReady(true)}
-            onError={handleVideoError}
+            onLoadedData={() => setVideoReady(true)}
+            onCanPlay={() => {
+              setVideoReady(true);
+              videoRef.current?.play().catch(() => {});
+            }}
+            onError={() => setVideoFailed(true)}
           />
         )}
 
