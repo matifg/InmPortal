@@ -33,6 +33,7 @@ export interface Property {
   agent?: AgentContact;
   imagenes?: { url: string }[];
   publicacionEstado?: PublicacionEstado;
+  wordpressPageId?: string | null;
 }
 
 export interface User {

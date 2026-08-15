@@ -2,12 +2,33 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Property } from '../types';
-import { Plus, Edit, Trash2, Loader2, MapPin, ExternalLink, Home, Search, X, ChevronDown, EyeOff, MessageCircle } from 'lucide-react';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Loader2,
+  MapPin,
+  ExternalLink,
+  Home,
+  Search,
+  X,
+  ChevronDown,
+  EyeOff,
+  MessageCircle,
+  Globe,
+  AlertTriangle,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import MembresiaBanner from '../components/MembresiaBanner';
 import { MEMBRESIA_INACTIVA_TOAST, syncMembresiaFromAgentResponse } from '../lib/membresia';
 import { useMembresia } from '../hooks/useMembresia';
 import { parseAgentContact } from '../lib/agentContact';
+import {
+  buildWordPressPublicUrl,
+  publishPropertyToWordPress,
+  unpublishPropertyFromWordPress,
+  WordPressPublishError,
+} from '../services/wordpressPublish';
 
 // Badge UI mejorada
 function StatusBadge({ status }: { status: string }) {
@@ -52,11 +73,98 @@ export default function AgentPanel() {
   const [order, setOrder] = useState('date-desc');
   const { membresiaActiva, setMembresiaActiva } = useMembresia(false);
   const [agentTelefono, setAgentTelefono] = useState<string | null>(null);
+  const [publishingPropertyId, setPublishingPropertyId] = useState<string | null>(null);
+  const [publishErrors, setPublishErrors] = useState<Record<string, string>>({});
+  const [unpublishConfirmId, setUnpublishConfirmId] = useState<string | null>(null);
+  const [unpublishingPropertyId, setUnpublishingPropertyId] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
   const notifyMembresiaInactiva = () => {
     toast.error(MEMBRESIA_INACTIVA_TOAST);
+  };
+
+  const clearPublishError = (propertyId: string) => {
+    setPublishErrors((prev) => {
+      if (!(propertyId in prev)) return prev;
+      const next = { ...prev };
+      delete next[propertyId];
+      return next;
+    });
+  };
+
+  const setWordpressPageIdLocal = (propertyId: string, wordpressPageId: string | null) => {
+    setProperties((prev) =>
+      prev.map((prop) =>
+        prop.id === propertyId ? { ...prop, wordpressPageId } : prop
+      )
+    );
+  };
+
+  const handlePublishToWordPress = async (propertyId: string) => {
+    if (publishingPropertyId || unpublishingPropertyId) return;
+
+    setPublishingPropertyId(propertyId);
+    clearPublishError(propertyId);
+
+    try {
+      const result = await publishPropertyToWordPress(propertyId);
+      const pageId = String(result.wordpressPageId);
+      setWordpressPageIdLocal(propertyId, pageId);
+      toast.success('Publicada en WordPress');
+    } catch (err) {
+      if (err instanceof WordPressPublishError && err.status === 409) {
+        if (err.wordpressPageId) {
+          setWordpressPageIdLocal(propertyId, err.wordpressPageId);
+          clearPublishError(propertyId);
+          toast.success('Esta propiedad ya está publicada en WordPress.');
+          return;
+        }
+        const msg = 'Esta propiedad ya está publicada en WordPress.';
+        setPublishErrors((prev) => ({ ...prev, [propertyId]: msg }));
+        toast.error(msg);
+        return;
+      }
+
+      const msg =
+        err instanceof WordPressPublishError
+          ? err.message
+          : 'Error al publicar en WordPress';
+      setPublishErrors((prev) => ({ ...prev, [propertyId]: msg }));
+      toast.error(msg);
+    } finally {
+      setPublishingPropertyId(null);
+    }
+  };
+
+  const handleConfirmUnpublish = async () => {
+    const propertyId = unpublishConfirmId;
+    if (!propertyId || unpublishingPropertyId) return;
+
+    setUnpublishingPropertyId(propertyId);
+    clearPublishError(propertyId);
+
+    try {
+      await unpublishPropertyFromWordPress(propertyId);
+      setWordpressPageIdLocal(propertyId, null);
+      setUnpublishConfirmId(null);
+      toast.success('Propiedad despublicada correctamente.');
+    } catch (err) {
+      if (err instanceof WordPressPublishError && err.status === 409) {
+        setWordpressPageIdLocal(propertyId, null);
+        setUnpublishConfirmId(null);
+        toast.success('La propiedad ya no está publicada en WordPress.');
+        return;
+      }
+
+      const msg =
+        err instanceof WordPressPublishError
+          ? err.message
+          : 'Error al despublicar de WordPress';
+      toast.error(msg);
+    } finally {
+      setUnpublishingPropertyId(null);
+    }
   };
 
   // Nueva función para obtener el agente autenticado
@@ -165,6 +273,11 @@ export default function AgentPanel() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const wpBusy = publishingPropertyId !== null || unpublishingPropertyId !== null;
+  const unpublishConfirmProperty = unpublishConfirmId
+    ? properties.find((p) => p.id === unpublishConfirmId)
+    : null;
 
   // --- UI ---
   return (
@@ -361,44 +474,138 @@ export default function AgentPanel() {
                     )}
                     <StatusBadge status={p.status} />
                   </div>
-                  <div className="flex gap-2 mt-1">
-                    <button
-                      className="p-2 rounded-lg hover:bg-indigo-50 transition group"
-                      title="Ver"
-                      aria-label="Ver"
-                      onClick={e => {
-                        e.stopPropagation();
-                        navigate(
-                          p.publicacionEstado === 'BORRADOR'
-                            ? `/propiedad/editar/${p.id}`
-                            : `/propiedad/${p.id}`
-                        );
-                      }}
-                    >
-                      <ExternalLink className="h-5 w-5 text-gray-400 group-hover:text-indigo-600" />
-                    </button>
-                    <button
-                      className="p-2 rounded-lg hover:bg-blue-50 transition group"
-                      title="Editar"
-                      aria-label="Editar"
-                      onClick={e => { e.stopPropagation(); navigate(`/propiedad/editar/${p.id}`); }}
-                    >
-                      <Edit className="h-5 w-5 text-gray-400 group-hover:text-blue-600" />
-                    </button>
-                    <button
-                      className="p-2 rounded-lg hover:bg-red-50 transition group"
-                      title="Eliminar"
-                      aria-label="Eliminar"
-                      onClick={e => {
-                        e.stopPropagation();
-                        const confirmDelete = window.confirm('Eliminar propiedad?');
-                        if (!confirmDelete) return;
-                        // deleteProperty(p.id); // Implementa si tienes la función
-                        toast.success('Propiedad eliminada (simulado)');
-                      }}
-                    >
-                      <Trash2 className="h-5 w-5 text-gray-400 group-hover:text-red-600" />
-                    </button>
+                  <div className="flex flex-col items-end gap-2 mt-1">
+                    <div className="flex gap-2 flex-wrap justify-end">
+                      <button
+                        className="p-2 rounded-lg hover:bg-indigo-50 transition group"
+                        title="Ver"
+                        aria-label="Ver"
+                        onClick={e => {
+                          e.stopPropagation();
+                          navigate(
+                            p.publicacionEstado === 'BORRADOR'
+                              ? `/propiedad/editar/${p.id}`
+                              : `/propiedad/${p.id}`
+                          );
+                        }}
+                      >
+                        <ExternalLink className="h-5 w-5 text-gray-400 group-hover:text-indigo-600" />
+                      </button>
+                      <button
+                        className="p-2 rounded-lg hover:bg-blue-50 transition group"
+                        title="Editar"
+                        aria-label="Editar"
+                        onClick={e => { e.stopPropagation(); navigate(`/propiedad/editar/${p.id}`); }}
+                      >
+                        <Edit className="h-5 w-5 text-gray-400 group-hover:text-blue-600" />
+                      </button>
+                      <button
+                        className="p-2 rounded-lg hover:bg-red-50 transition group"
+                        title="Eliminar"
+                        aria-label="Eliminar"
+                        onClick={e => {
+                          e.stopPropagation();
+                          const confirmDelete = window.confirm('Eliminar propiedad?');
+                          if (!confirmDelete) return;
+                          // deleteProperty(p.id); // Implementa si tienes la función
+                          toast.success('Propiedad eliminada (simulado)');
+                        }}
+                      >
+                        <Trash2 className="h-5 w-5 text-gray-400 group-hover:text-red-600" />
+                      </button>
+                    </div>
+
+                    {p.publicacionEstado === 'PUBLICADA' && (
+                      <div className="flex flex-col items-end gap-1.5">
+                        <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                          WordPress
+                        </div>
+                        {p.wordpressPageId ? (
+                          <>
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+                              Publicada
+                            </span>
+                            <div className="flex gap-2 flex-wrap justify-end">
+                              <a
+                                href={buildWordPressPublicUrl(p.wordpressPageId)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Ver en WordPress"
+                                aria-label="Ver en WordPress"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition"
+                              >
+                                <Globe className="h-3.5 w-3.5" />
+                                Ver en WordPress
+                              </a>
+                              <button
+                                type="button"
+                                title="Despublicar"
+                                aria-label="Despublicar de WordPress"
+                                disabled={wpBusy}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setUnpublishConfirmId(p.id);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 bg-red-50 border border-red-100 hover:bg-red-100 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                Despublicar
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                              <span className="h-1.5 w-1.5 rounded-full bg-gray-300" aria-hidden />
+                              No publicada
+                            </span>
+                            <button
+                              type="button"
+                              title="Publicar en WordPress"
+                              aria-label="Publicar en WordPress"
+                              disabled={wpBusy}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handlePublishToWordPress(p.id);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {publishingPropertyId === p.id ? (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  Publicando...
+                                </>
+                              ) : (
+                                <>
+                                  <Globe className="h-3.5 w-3.5" />
+                                  Publicar en WordPress
+                                </>
+                              )}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {publishErrors[p.id] && (
+                      <div className="flex flex-col items-end gap-1 max-w-[240px]">
+                        <p className="text-xs text-red-600 text-right">{publishErrors[p.id]}</p>
+                        {p.publicacionEstado === 'PUBLICADA' && !p.wordpressPageId && (
+                          <button
+                            type="button"
+                            disabled={wpBusy}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handlePublishToWordPress(p.id);
+                            }}
+                            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                          >
+                            Reintentar
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -427,6 +634,83 @@ export default function AgentPanel() {
           </button>
         </div>
       </div>
+
+      {unpublishConfirmId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="unpublish-wp-title"
+          onClick={() => {
+            if (!unpublishingPropertyId) setUnpublishConfirmId(null);
+          }}
+        >
+          <div
+            className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <button
+                  type="button"
+                  disabled={!!unpublishingPropertyId}
+                  onClick={() => setUnpublishConfirmId(null)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  aria-label="Cerrar"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <h2 id="unpublish-wp-title" className="text-lg font-bold text-gray-900 mb-2">
+                ¿Despublicar propiedad?
+              </h2>
+              <p className="text-sm text-gray-600 leading-relaxed mb-1">
+                {unpublishConfirmProperty?.title
+                  ? (
+                    <>
+                      Vas a despublicar{' '}
+                      <span className="font-medium text-gray-800">{unpublishConfirmProperty.title}</span>.
+                    </>
+                  )
+                  : 'Vas a despublicar esta propiedad.'}
+              </p>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                La propiedad dejará de aparecer en el sitio web. La ficha de WordPress será enviada a la papelera.
+              </p>
+            </div>
+
+            <div className="flex gap-3 px-5 sm:px-6 py-4 bg-gray-50 border-t border-gray-100">
+              <button
+                type="button"
+                disabled={!!unpublishingPropertyId}
+                onClick={() => setUnpublishConfirmId(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={!!unpublishingPropertyId}
+                onClick={() => void handleConfirmUnpublish()}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {unpublishingPropertyId ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Despublicando...
+                  </>
+                ) : (
+                  'Despublicar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

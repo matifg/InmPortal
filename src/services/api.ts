@@ -2,6 +2,15 @@ import { Property, PropertyType, AgentContact } from '../types';
 import { parseAgentContact, fetchAgentContact, resolveAgentContact } from '../lib/agentContact';
 import { normalizeImageUrl } from '../lib/propertyImages';
 
+/** Catálogo de tipos usado en filtros y formularios (mismo mapeo del backend). */
+export const PROPERTY_TYPE_OPTIONS: { id: number; label: PropertyType }[] = [
+  { id: 1, label: 'Casa' },
+  { id: 2, label: 'Departamento' },
+  { id: 3, label: 'Terreno' },
+  { id: 4, label: 'Local Comercial' },
+  { id: 5, label: 'Oficina' },
+];
+
 function mapPropertyImages(item: { imageUrl?: string | null; imagenes?: { url?: string; orden?: number }[] }): string[] {
   const portada = item.imageUrl?.trim() ? normalizeImageUrl(item.imageUrl.trim()) : '';
   const fromGallery = Array.isArray(item.imagenes)
@@ -18,12 +27,8 @@ function mapPropertyImages(item: { imageUrl?: string | null; imagenes?: { url?: 
 }
 
 function mapTipoId(tipoId?: number): PropertyType {
-  if (tipoId === 1) return 'Casa';
-  if (tipoId === 2) return 'Departamento';
-  if (tipoId === 3) return 'Terreno';
-  if (tipoId === 4) return 'Local Comercial';
-  if (tipoId === 5) return 'Oficina';
-  return 'Departamento';
+  const found = PROPERTY_TYPE_OPTIONS.find((t) => t.id === tipoId);
+  return found?.label ?? 'Departamento';
 }
 
 function mapStatus(operacion?: string | null, estado?: string | null): Property['status'] {
@@ -56,6 +61,7 @@ function mapPropertyItem(item: any): Property {
     zona: item.zona,
     agent: parseAgentContact(item.agente ?? item.agent) ?? undefined,
     publicacionEstado: item.publicacionEstado ?? 'PUBLICADA',
+    wordpressPageId: item.wordpressPageId ?? null,
   };
 }
 
