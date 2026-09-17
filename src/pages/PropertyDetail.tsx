@@ -21,10 +21,17 @@ import {
   Pencil,
   Heart,
   Eye,
+  Car,
+  LayoutGrid,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const DESC_COLLAPSE_LEN = 420;
+
+/** Muestra conteos solo si son > 0 (null/0/undefined se ocultan). */
+function hasCount(n?: number | null): n is number {
+  return typeof n === 'number' && n > 0;
+}
 
 function WhatsAppIcon({ className = '' }: { className?: string }) {
   return (
@@ -213,11 +220,16 @@ export default function PropertyDetail() {
     : null;
 
   const specs = [
+    hasCount(property.totalAmbientes)
+      ? { value: property.totalAmbientes, label: 'Ambientes', emoji: '🏠' }
+      : null,
     { value: property.bedrooms, label: 'Habitaciones', emoji: '🛏' },
     { value: property.bathrooms, label: 'Baños', emoji: '🚿' },
     { value: property.area ? `${property.area} m²` : '—', label: 'Superficie', emoji: '📐' },
-    { value: '—', label: 'Cochera', emoji: '🚗' },
-  ];
+    hasCount(property.cocheras)
+      ? { value: property.cocheras, label: property.cocheras === 1 ? 'Cochera' : 'Cocheras', emoji: '🚗' }
+      : null,
+  ].filter(Boolean) as { value: string | number; label: string; emoji: string }[];
 
   const secondaryActionBtn =
     'flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 hover:border-gray-300 transition-all duration-200';
@@ -246,6 +258,12 @@ export default function PropertyDetail() {
           {property.title}
         </h1>
         <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3 text-sm text-gray-600">
+          {hasCount(property.totalAmbientes) && (
+            <span className="inline-flex items-center gap-1.5">
+              <LayoutGrid className="h-4 w-4 text-indigo-500 shrink-0" />
+              {property.totalAmbientes} amb.
+            </span>
+          )}
           <span className="inline-flex items-center gap-1.5">
             <Bed className="h-4 w-4 text-indigo-500 shrink-0" />
             {property.bedrooms ?? '—'} dorm.
@@ -254,6 +272,12 @@ export default function PropertyDetail() {
             <Bath className="h-4 w-4 text-indigo-500 shrink-0" />
             {property.bathrooms ?? '—'} baños
           </span>
+          {hasCount(property.cocheras) && (
+            <span className="inline-flex items-center gap-1.5">
+              <Car className="h-4 w-4 text-indigo-500 shrink-0" />
+              {property.cocheras} coch.
+            </span>
+          )}
           <span className="inline-flex items-center gap-1.5">
             <Square className="h-4 w-4 text-indigo-500 shrink-0" />
             {property.area ? `${property.area} m²` : '—'}

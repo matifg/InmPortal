@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Search, MapPin, Home as HomeIcon, RotateCcw, Tag, ChevronDown } from 'lucide-react';
+import { Search, Home as HomeIcon, RotateCcw, Tag, ChevronDown, Map } from 'lucide-react';
 import { PropertySearchFilters } from '../lib/filterProperties';
+import { getZonesForCity } from '../lib/cityZones';
+import CityLocationFilters from './CityLocationFilters';
 
 const HERO_VIDEO = '/videos/hero.mp4';
 const HERO_POSTER =
@@ -24,6 +26,7 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [locationResetToken, setLocationResetToken] = useState(0);
 
   useEffect(() => {
     if (videoFailed) return;
@@ -37,7 +40,6 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
       });
     };
 
-    // Asegura reproducción apenas haya datos (src va en el markup).
     if (video.readyState >= 2) {
       setVideoReady(true);
       tryPlay();
@@ -59,6 +61,14 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
     e.preventDefault();
     onSearch();
   };
+
+  const handleClear = () => {
+    setLocationResetToken((n) => n + 1);
+    onClear();
+  };
+
+  const zoneOptions = getZonesForCity(filters.city);
+  const showZoneFilter = zoneOptions.length > 0;
 
   return (
     <section className="relative flex min-h-[85vh] max-h-[100vh] items-end sm:items-center pb-10 sm:pb-0">
@@ -112,7 +122,7 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
             Encontrá tu próxima propiedad
           </h1>
           <p className="mt-3 text-base sm:text-lg text-slate-200 max-w-xl mx-auto sm:mx-0 drop-shadow-sm">
-            Filtrá por ciudad, tipo y operación en segundos.
+            Filtrá por provincia, ciudad, zona, tipo y operación.
           </p>
         </div>
 
@@ -121,22 +131,36 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
           className="rounded-2xl border border-white/20 bg-white/95 backdrop-blur-md shadow-2xl shadow-slate-900/30 p-4 sm:p-5"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            <div>
-              <label className={labelClass} htmlFor="search-city">
-                Ciudad
-              </label>
-              <div className={fieldClass}>
-                <MapPin className="h-4 w-4 text-indigo-500 shrink-0" aria-hidden />
-                <input
-                  id="search-city"
-                  type="text"
-                  placeholder="Ej. Rosario, CABA..."
-                  value={filters.city}
-                  onChange={(e) => onFiltersChange({ city: e.target.value })}
-                  className="w-full bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
-                />
+            <CityLocationFilters
+              city={filters.city}
+              onCityChange={(city) => onFiltersChange({ city })}
+              resetToken={locationResetToken}
+            />
+
+            {showZoneFilter && (
+              <div>
+                <label className={labelClass} htmlFor="search-zona">
+                  Zona
+                </label>
+                <div className={`${fieldClass} relative`}>
+                  <Map className="h-4 w-4 text-indigo-500 shrink-0" aria-hidden />
+                  <select
+                    id="search-zona"
+                    value={filters.zona}
+                    onChange={(e) => onFiltersChange({ zona: e.target.value })}
+                    className="w-full appearance-none bg-transparent text-sm text-slate-800 focus:outline-none cursor-pointer pr-6"
+                  >
+                    <option value="">Todas las zonas</option>
+                    {zoneOptions.map((z) => (
+                      <option key={z} value={z}>
+                        {z}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label className={labelClass} htmlFor="search-tipo">
@@ -159,7 +183,7 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
               </div>
             </div>
 
-            <div className="sm:col-span-2 lg:col-span-1">
+            <div>
               <label className={labelClass} htmlFor="search-operacion">
                 Operación
               </label>
@@ -191,7 +215,7 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
             </button>
             <button
               type="button"
-              onClick={onClear}
+              onClick={handleClear}
               disabled={!canClear}
               title="Limpiar filtros"
               aria-label="Limpiar filtros"

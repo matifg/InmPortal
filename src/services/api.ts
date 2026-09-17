@@ -51,6 +51,8 @@ function mapPropertyItem(item: any): Property {
     bedrooms: item.habitaciones,
     bathrooms: item.banios,
     area: item.superficieM2,
+    totalAmbientes: item.totalAmbientes ?? null,
+    cocheras: item.cocheras ?? null,
     status: mapStatus(item.operacion, item.estado),
     images: mapPropertyImages(item),
     agentId: item.agenteId,

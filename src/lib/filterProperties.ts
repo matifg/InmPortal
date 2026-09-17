@@ -2,12 +2,14 @@ import { Property } from '../types';
 
 export type PropertySearchFilters = {
   city: string;
+  zona: string;
   tipoId: string;
   operacion: string;
 };
 
 export const EMPTY_PROPERTY_FILTERS: PropertySearchFilters = {
   city: '',
+  zona: '',
   tipoId: '',
   operacion: '',
 };
@@ -19,7 +21,9 @@ export function normalizeSearch(str: string): string {
 }
 
 export function hasActiveFilters(filters: PropertySearchFilters): boolean {
-  return Boolean(filters.city.trim() || filters.tipoId || filters.operacion);
+  return Boolean(
+    filters.city.trim() || filters.zona.trim() || filters.tipoId || filters.operacion
+  );
 }
 
 export function filterProperties(
@@ -27,6 +31,7 @@ export function filterProperties(
   filters: PropertySearchFilters
 ): Property[] {
   const cityQ = normalizeSearch(filters.city);
+  const zonaQ = normalizeSearch(filters.zona);
   const tipoId = filters.tipoId;
   const opQ = normalizeSearch(filters.operacion);
 
@@ -34,8 +39,11 @@ export function filterProperties(
     if (cityQ) {
       const inCity = normalizeSearch(p.city).includes(cityQ);
       const inTitle = normalizeSearch(p.title).includes(cityQ);
-      const inZone = normalizeSearch(p.zona || '').includes(cityQ);
-      if (!inCity && !inTitle && !inZone) return false;
+      if (!inCity && !inTitle) return false;
+    }
+
+    if (zonaQ) {
+      if (normalizeSearch(p.zona || '') !== zonaQ) return false;
     }
 
     if (tipoId) {

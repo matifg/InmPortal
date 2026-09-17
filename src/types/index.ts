@@ -22,6 +22,8 @@ export interface Property {
   bedrooms: number;
   bathrooms: number;
   area: number;
+  totalAmbientes?: number | null;
+  cocheras?: number | null;
   status: PropertyStatus;
   images: string[];
   agentId: string;

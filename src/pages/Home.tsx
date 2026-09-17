@@ -20,6 +20,7 @@ import {
   filterProperties,
   hasActiveFilters,
 } from '../lib/filterProperties';
+import { getZonesForCity } from '../lib/cityZones';
 
 const DEFAULT_PAGE_SIZE = 20;
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
@@ -96,7 +97,16 @@ export default function Home() {
   }, [draftFilters]);
 
   const handleFiltersChange = (patch: Partial<PropertySearchFilters>) => {
-    setDraftFilters((prev) => ({ ...prev, ...patch }));
+    setDraftFilters((prev) => {
+      const next = { ...prev, ...patch };
+      if ('city' in patch) {
+        const zones = getZonesForCity(next.city);
+        if (!next.zona || !zones.includes(next.zona)) {
+          next.zona = '';
+        }
+      }
+      return next;
+    });
   };
 
   const scrollToListado = () => {
@@ -119,14 +129,25 @@ export default function Home() {
   };
 
   const clearSingleFilter = (key: keyof PropertySearchFilters) => {
-    setDraftFilters((prev) => ({ ...prev, [key]: '' }));
-    setAppliedFilters((prev) => ({ ...prev, [key]: '' }));
+    setDraftFilters((prev) => {
+      const next = { ...prev, [key]: '' };
+      if (key === 'city') next.zona = '';
+      return next;
+    });
+    setAppliedFilters((prev) => {
+      const next = { ...prev, [key]: '' };
+      if (key === 'city') next.zona = '';
+      return next;
+    });
     setCurrentPage(1);
   };
 
   const filterChips = [
     appliedFilters.city
       ? { key: 'city' as const, label: `Ciudad: ${appliedFilters.city}` }
+      : null,
+    appliedFilters.zona
+      ? { key: 'zona' as const, label: `Zona: ${appliedFilters.zona}` }
       : null,
     appliedFilters.tipoId
       ? {

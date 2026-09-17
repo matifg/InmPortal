@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom';
-import { Bed, Bath, Square, MapPin, Home } from 'lucide-react';
+import { Bed, Bath, Square, MapPin, Home, Car, LayoutGrid } from 'lucide-react';
 import { Property } from '../types';
 
 interface PropertyCardProps {
   property: Property;
+}
+
+/** Muestra conteos solo si son > 0 (null/0/undefined se ocultan). */
+function hasCount(n?: number | null): n is number {
+  return typeof n === 'number' && n > 0;
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
@@ -20,6 +25,18 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     const { symbol, label } = getCurrencyInfo(currency);
     return price.toLocaleString('es-ES', { maximumFractionDigits: 0 }) + ' ' + symbol + ' (' + label + ')';
   };
+
+  const stats = [
+    hasCount(property.totalAmbientes)
+      ? { icon: LayoutGrid, value: property.totalAmbientes, title: 'Ambientes' }
+      : null,
+    { icon: Bed, value: property.bedrooms, title: 'Dormitorios' },
+    { icon: Bath, value: property.bathrooms, title: 'Baños' },
+    hasCount(property.cocheras)
+      ? { icon: Car, value: property.cocheras, title: 'Cocheras' }
+      : null,
+    { icon: Square, value: `${property.area}m²`, title: 'Superficie' },
+  ].filter(Boolean) as { icon: typeof Bed; value: string | number; title: string }[];
 
   return (
     <Link to={`/propiedad/${property.id}`} className="group block">
@@ -69,19 +86,17 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             <span className="truncate">{property.city} - {property.address}</span>
           </div>
 
-          <div className="mt-auto pt-4 border-t border-slate-100 grid grid-cols-3 gap-4">
-            <div className="flex items-center gap-2 text-slate-700">
-              <Bed className="h-4 w-4 text-slate-400" />
-              <span className="text-sm font-medium">{property.bedrooms}</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-700">
-              <Bath className="h-4 w-4 text-slate-400" />
-              <span className="text-sm font-medium">{property.bathrooms}</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-700">
-              <Square className="h-4 w-4 text-slate-400" />
-              <span className="text-sm font-medium">{property.area}m²</span>
-            </div>
+          <div className="mt-auto pt-4 border-t border-slate-100 flex flex-wrap gap-x-4 gap-y-2">
+            {stats.map(({ icon: Icon, value, title }) => (
+              <div
+                key={title}
+                className="flex items-center gap-2 text-slate-700"
+                title={title}
+              >
+                <Icon className="h-4 w-4 text-slate-400" />
+                <span className="text-sm font-medium">{value}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

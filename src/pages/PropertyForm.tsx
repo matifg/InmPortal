@@ -8,6 +8,8 @@ import toast from 'react-hot-toast';
 import MembresiaBanner from '../components/MembresiaBanner';
 import { useMembresia } from '../hooks/useMembresia';
 import { fetchProvincias, fetchLocalidades, type UbicacionItem } from '../services/ubicaciones';
+import { PROPERTY_TYPE_OPTIONS } from '../services/api';
+import { BARADERO_ZONES } from '../lib/cityZones';
 import { resolveCityToLocation } from '../lib/resolveLocation';
 import PropertyFormPreview from '../components/PropertyFormPreview';
 import PropertyFormProgress, { type ProgressStep } from '../components/PropertyFormProgress';
@@ -84,9 +86,12 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     bedrooms: '',
     bathrooms: '',
     area: '',
+    totalAmbientes: '',
+    cocheras: '',
     status: 'Venta',
     currency: 'USD',
     operation: 'Venta',
+    tipoId: '1',
     zona: '',
     ocultarPrecio: false,
   });
@@ -105,9 +110,18 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       bedrooms: initialData.habitaciones?.toString() || '',
       bathrooms: initialData.banios?.toString() || '',
       area: initialData.superficieM2?.toString() || '',
+      totalAmbientes:
+        initialData.totalAmbientes != null && initialData.totalAmbientes !== ''
+          ? String(initialData.totalAmbientes)
+          : '',
+      cocheras:
+        initialData.cocheras != null && initialData.cocheras !== ''
+          ? String(initialData.cocheras)
+          : '',
       status: initialData.estado || 'Venta',
       currency: initialData.moneda || 'USD',
       operation: initialData.operacion || 'Venta',
+      tipoId: initialData.tipoId != null ? String(initialData.tipoId) : '1',
       zona: initialData.zona || '',
       ocultarPrecio: initialData.ocultarPrecio ?? false,
     });
@@ -256,6 +270,12 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
 
   const parsePrice = (value: string) => {
     return Number(value.replace(/\./g, ''));
+  };
+
+  const optionalNumberOrNull = (value: string): number | null => {
+    if (value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
   };
 
   const markDirty = () => setIsDirty(true);
@@ -500,7 +520,9 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         superficieM2: Number(formData.area) || 0,
         habitaciones: Number(formData.bedrooms) || 0,
         banios: Number(formData.bathrooms) || 0,
-        tipoId: 1,
+        totalAmbientes: optionalNumberOrNull(formData.totalAmbientes),
+        cocheras: optionalNumberOrNull(formData.cocheras),
+        tipoId: Number(formData.tipoId) || 1,
         estado: formData.status,
         operacion: formData.operation,
         moneda: formData.currency,
@@ -857,10 +879,11 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                       className={fieldInput(!!errorMsg && !formData.zona)}
                     >
                       <option value="">Elegir zona</option>
-                      <option value="Colonia Suiza">Colonia Suiza</option>
-                      <option value="Centro">Centro</option>
-                      <option value="Estacion">Estacion</option>
-                      <option value="Costa">Costa</option>
+                      {BARADERO_ZONES.map((z) => (
+                        <option key={z} value={z}>
+                          {z}
+                        </option>
+                      ))}
                     </select>
                     {errorMsg && !formData.zona && (
                       <span className="text-xs text-red-500 mt-1 block">La zona es obligatoria</span>
@@ -898,7 +921,21 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
               subtitle="Ambientes y superficie"
               icon={Bed}
             >
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Total ambientes
+                  </label>
+                  <input
+                    type="number"
+                    name="totalAmbientes"
+                    value={formData.totalAmbientes}
+                    onChange={handleChange}
+                    placeholder="4"
+                    min={0}
+                    className={fieldInput(false)}
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Dormitorios</label>
                   <input
@@ -924,6 +961,18 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Cocheras</label>
+                  <input
+                    type="number"
+                    name="cocheras"
+                    value={formData.cocheras}
+                    onChange={handleChange}
+                    placeholder="1"
+                    min={0}
+                    className={fieldInput(false)}
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">m²</label>
                   <input
                     type="number"
@@ -942,10 +991,28 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
             <PropertyFormSection
               id="commercial"
               title="Comercialización"
-              subtitle="Tipo de operación y visibilidad del precio"
+              subtitle="Tipo de propiedad, operación y visibilidad del precio"
               icon={Tag}
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Tipo de propiedad <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="field-tipo"
+                    name="tipoId"
+                    value={formData.tipoId}
+                    onChange={handleChange}
+                    className={fieldInput(false)}
+                  >
+                    {PROPERTY_TYPE_OPTIONS.map((t) => (
+                      <option key={t.id} value={String(t.id)}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1 relative group">
                     Estado
