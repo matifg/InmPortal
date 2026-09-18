@@ -21,13 +21,27 @@ async function fetchAllLocalidades(provincias: UbicacionItem[]): Promise<Ubicaci
   const lists = await Promise.all(
     provincias.map((p) => fetchLocalidades(p.id).catch(() => [] as UbicacionItem[]))
   );
-  const byId = new Map<string, UbicacionItem>();
+  // Mismo nombre en varias provincias (ej. San Pedro) → una sola sugerencia:
+  // el filtro del home matchea por nombre de ciudad, no por provincia.
+  const byName = new Map<string, UbicacionItem>();
   for (const loc of lists.flat()) {
-    byId.set(loc.id, loc);
+    const key = normalizeSearch(loc.nombre);
+    if (!key || byName.has(key)) continue;
+    byName.set(key, loc);
   }
-  return [...byId.values()].sort((a, b) =>
+  return [...byName.values()].sort((a, b) =>
     a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
   );
+}
+
+function dedupeLocalidadesByName(list: UbicacionItem[]): UbicacionItem[] {
+  const byName = new Map<string, UbicacionItem>();
+  for (const loc of list) {
+    const key = normalizeSearch(loc.nombre);
+    if (!key || byName.has(key)) continue;
+    byName.set(key, loc);
+  }
+  return [...byName.values()];
 }
 
 /**
@@ -83,7 +97,7 @@ export default function CityLocationFilters({
       try {
         if (!isAllProvincias) {
           const list = await fetchLocalidades(provinciaId);
-          if (!cancelled) setLocalidades(list);
+          if (!cancelled) setLocalidades(dedupeLocalidadesByName(list));
           return;
         }
 

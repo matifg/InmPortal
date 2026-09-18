@@ -86,6 +86,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     bedrooms: '',
     bathrooms: '',
     area: '',
+    areaCubierta: '',
     totalAmbientes: '',
     cocheras: '',
     status: 'Venta',
@@ -110,6 +111,10 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       bedrooms: initialData.habitaciones?.toString() || '',
       bathrooms: initialData.banios?.toString() || '',
       area: initialData.superficieM2?.toString() || '',
+      areaCubierta:
+        initialData.superficieCubiertaM2 != null && initialData.superficieCubiertaM2 !== ''
+          ? String(initialData.superficieCubiertaM2)
+          : '',
       totalAmbientes:
         initialData.totalAmbientes != null && initialData.totalAmbientes !== ''
           ? String(initialData.totalAmbientes)
@@ -518,6 +523,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         ciudad: formData.city,
         precio: formData.price ? parsePrice(formData.price) : 0,
         superficieM2: Number(formData.area) || 0,
+        superficieCubiertaM2: optionalNumberOrNull(formData.areaCubierta),
         habitaciones: Number(formData.bedrooms) || 0,
         banios: Number(formData.bathrooms) || 0,
         totalAmbientes: optionalNumberOrNull(formData.totalAmbientes),
@@ -973,13 +979,29 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">m²</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Superficie total (m²)
+                  </label>
                   <input
                     type="number"
                     name="area"
                     value={formData.area}
                     onChange={handleChange}
                     placeholder="120"
+                    min={0}
+                    className={fieldInput(false)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Superficie cubierta (m²)
+                  </label>
+                  <input
+                    type="number"
+                    name="areaCubierta"
+                    value={formData.areaCubierta}
+                    onChange={handleChange}
+                    placeholder="90"
                     min={0}
                     className={fieldInput(false)}
                   />

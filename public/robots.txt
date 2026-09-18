@@ -1,0 +1,17 @@
+# Inmo360 - public pages only (auth/panel disallowed)
+# Build/dev regenerates with absolute Sitemap via VITE_SITE_URL.
+User-agent: *
+Allow: /
+
+Disallow: /login
+Disallow: /register
+Disallow: /registro
+Disallow: /verificar-email
+Disallow: /recuperar-password
+Disallow: /restablecer-password
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /agent
+Disallow: /propiedad/editar
+
+Sitemap: http://localhost:3000/sitemap.xml

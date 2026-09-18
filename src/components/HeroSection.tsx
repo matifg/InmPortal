@@ -198,7 +198,6 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
                   <option value="">Venta o alquiler</option>
                   <option value="Venta">Venta</option>
                   <option value="Alquiler">Alquiler</option>
-                  <option value="Temporario">Temporario</option>
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               </div>

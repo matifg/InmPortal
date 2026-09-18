@@ -25,6 +25,8 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { usePageMeta } from '../hooks/usePageMeta';
+import { buildPropertyPageDescription, buildPropertyPageTitle } from '../lib/seo';
 
 const DESC_COLLAPSE_LEN = 420;
 
@@ -51,6 +53,23 @@ export default function PropertyDetail() {
   const [loading, setLoading] = useState(true);
   const [descExpanded, setDescExpanded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+
+  const pageTitle = loading
+    ? 'Cargando propiedad'
+    : property
+      ? buildPropertyPageTitle(property)
+      : 'Propiedad no encontrada';
+  const pageDescription = property ? buildPropertyPageDescription(property) : undefined;
+  const coverImage = property
+    ? collectPropertyImages(property).find((src) => src && src !== '/no-image.jpg')
+    : undefined;
+  usePageMeta(pageTitle, pageDescription, {
+    type: 'article',
+    image: coverImage,
+    url: typeof window !== 'undefined' && id
+      ? `${window.location.origin}/propiedad/${id}`
+      : undefined,
+  });
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -225,7 +244,10 @@ export default function PropertyDetail() {
       : null,
     { value: property.bedrooms, label: 'Habitaciones', emoji: '🛏' },
     { value: property.bathrooms, label: 'Baños', emoji: '🚿' },
-    { value: property.area ? `${property.area} m²` : '—', label: 'Superficie', emoji: '📐' },
+    { value: property.area ? `${property.area} m²` : '—', label: 'Superficie total', emoji: '📐' },
+    hasCount(property.areaCubierta)
+      ? { value: `${property.areaCubierta} m²`, label: 'Superficie cubierta', emoji: '🧱' }
+      : null,
     hasCount(property.cocheras)
       ? { value: property.cocheras, label: property.cocheras === 1 ? 'Cochera' : 'Cocheras', emoji: '🚗' }
       : null,
@@ -281,6 +303,9 @@ export default function PropertyDetail() {
           <span className="inline-flex items-center gap-1.5">
             <Square className="h-4 w-4 text-indigo-500 shrink-0" />
             {property.area ? `${property.area} m²` : '—'}
+            {hasCount(property.areaCubierta) && (
+              <span className="text-gray-500">({property.areaCubierta} m² cub.)</span>
+            )}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <HomeIcon className="h-4 w-4 text-indigo-500 shrink-0" />

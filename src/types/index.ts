@@ -22,6 +22,8 @@ export interface Property {
   bedrooms: number;
   bathrooms: number;
   area: number;
+  /** Superficie cubierta m² (API: superficieCubiertaM2). null/0 = no mostrar. */
+  areaCubierta?: number | null;
   totalAmbientes?: number | null;
   cocheras?: number | null;
   status: PropertyStatus;

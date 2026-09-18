@@ -359,7 +359,6 @@ export default function AgentPanel() {
               <option value="all">Todos</option>
               <option value="Venta">Venta</option>
               <option value="Alquiler">Alquiler</option>
-              <option value="Temporario">Temporario</option>
             </select>
             {/* Ordenamiento */}
             <div className="relative min-w-[190px]">

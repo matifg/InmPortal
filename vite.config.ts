@@ -2,11 +2,19 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig, loadEnv} from 'vite';
+import { seoStaticFilesPlugin } from './vite-plugin-seo-files';
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      seoStaticFilesPlugin({
+        siteUrl: env.VITE_SITE_URL || env.APP_URL || 'http://localhost:3000',
+        apiUrl: env.VITE_API_URL || 'http://localhost:8080',
+      }),
+    ],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },

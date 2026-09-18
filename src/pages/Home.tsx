@@ -21,12 +21,19 @@ import {
   hasActiveFilters,
 } from '../lib/filterProperties';
 import { getZonesForCity } from '../lib/cityZones';
+import { usePageMeta } from '../hooks/usePageMeta';
 
 const DEFAULT_PAGE_SIZE = 20;
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 type SortOption = 'recent' | 'price-asc' | 'price-desc';
 
 export default function Home() {
+  usePageMeta(
+    'Propiedades en venta y alquiler',
+    'Encontrá casas, departamentos y terrenos. Filtrá por ciudad, zona, tipo y operación en Inmo360.',
+    { type: 'website' }
+  );
+
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
