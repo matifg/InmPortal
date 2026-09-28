@@ -111,20 +111,26 @@ export const api = {
     return resolveAgentContact(agentId, null, token);
   },
 
-  // GET /propiedades?agentId=:agentId
+  // GET /propiedades/agente/:agenteId (público; JWT opcional)
   getPropertiesByAgent: async (agentId: string): Promise<Property[]> => {
-    // Fetch real data from backend con autenticación JWT
     const token = localStorage.getItem('token');
     const res = await fetch(`${import.meta.env.VITE_API_URL}/propiedades/agente/${agentId}`, {
       headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'Content-Type': 'application/json',
+      },
     });
-    if (!res.ok) throw new Error('Error fetching agent properties');
-    const data = await res.json();
-    if (!Array.isArray(data)) return [];
-    return data.map(mapPropertyItem);
+    if (res.ok) {
+      const data = await res.json();
+      if (!Array.isArray(data)) return [];
+      return data.map(mapPropertyItem);
+    }
+    // Fallback: filtrar catálogo público si el endpoint por agente no es accesible
+    if (res.status === 401 || res.status === 403) {
+      const all = await api.getProperties();
+      return all.filter((p) => String(p.agentId) === String(agentId));
+    }
+    throw new Error('Error fetching agent properties');
   },
 
   // POST /propiedades

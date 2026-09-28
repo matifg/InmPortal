@@ -1,3 +1,5 @@
+import { normalizeImageUrl } from './propertyImages';
+
 export const AR_MOBILE_PHONE_PLACEHOLDER = '11 2345-6789';
 
 export const AR_MOBILE_PHONE_EXAMPLE = '+54 9 11 2345-6789';
@@ -26,11 +28,24 @@ export type AgentContact = {
   email?: string;
   telefono?: string;
   inmobiliaria?: string;
+  logoUrl?: string | null;
+  coverUrl?: string | null;
 };
 
 function pickString(...values: unknown[]): string | undefined {
   for (const v of values) {
     if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return undefined;
+}
+
+function pickOptionalUrl(...values: unknown[]): string | null | undefined {
+  for (const v of values) {
+    if (v === null) return null;
+    if (typeof v === 'string') {
+      const t = v.trim();
+      if (t) return t;
+    }
   }
   return undefined;
 }
@@ -42,21 +57,29 @@ export function parseAgentContact(data: unknown): AgentContact | null {
   const nested = o.usuario ?? o.user;
   const n = nested && typeof nested === 'object' ? (nested as Record<string, unknown>) : null;
 
-  const fullName = [o.nombre, o.apellido, n?.nombre, n?.apellido]
-    .filter((x): x is string => typeof x === 'string' && x.trim() !== '')
-    .join(' ')
-    .trim();
-
-  const nombre = pickString(o.nombre, o.name, n?.nombre, n?.name, fullName || undefined);
+  const firstName = pickString(o.nombre, o.name, n?.nombre, n?.name);
+  const lastName = pickString(o.apellido, o.lastName, n?.apellido, n?.lastName);
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  const nombre = fullName || firstName;
 
   if (!nombre) return null;
+
+  const rawLogo = pickOptionalUrl(o.logoUrl, o.logo_url, n?.logoUrl);
+  const logoUrl =
+    rawLogo === null ? null : rawLogo ? normalizeImageUrl(rawLogo) : undefined;
+
+  const rawCover = pickOptionalUrl(o.coverUrl, o.cover_url, n?.coverUrl);
+  const coverUrl =
+    rawCover === null ? null : rawCover ? normalizeImageUrl(rawCover) : undefined;
 
   return {
     id: pickString(o.id, o.agenteId, o.usuarioId, n?.id),
     nombre,
     email: pickString(o.email, n?.email),
     telefono: pickString(o.telefono, o.phone, o.telefonoContacto, n?.telefono, n?.phone),
-    inmobiliaria: pickString(o.inmobiliaria, o.empresa, o.agencia, 'Inmo360'),
+    inmobiliaria: pickString(o.inmobiliaria, o.empresa, o.agencia, o.nombreInmobiliaria),
+    logoUrl,
+    coverUrl,
   };
 }
 
@@ -103,6 +126,9 @@ export async function resolveAgentContact(
             nombre: contact.nombre || fetched.nombre,
             telefono: fetched.telefono ?? contact.telefono,
             email: fetched.email ?? contact.email,
+            inmobiliaria: contact.inmobiliaria ?? fetched.inmobiliaria,
+            logoUrl: contact.logoUrl ?? fetched.logoUrl,
+            coverUrl: contact.coverUrl ?? fetched.coverUrl,
           }
         : fetched;
     }

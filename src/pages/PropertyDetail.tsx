@@ -364,6 +364,15 @@ export default function PropertyDetail() {
                 Este agente aún no configuró un número de contacto.
               </p>
             )}
+            {property.agentId && (
+              <Link
+                to={`/inmobiliaria/${property.agentId}`}
+                className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 text-gray-700 hover:text-indigo-700 px-5 py-3 text-sm font-semibold transition-all duration-200"
+              >
+                <HomeIcon className="h-4 w-4 shrink-0" />
+                Ver inmobiliaria
+              </Link>
+            )}
           </div>
 
           <div className="flex items-center gap-2 pt-3 border-t border-gray-100">

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { clearSession } from '../lib/auth';
+import { normalizeImageUrl } from '../lib/propertyImages';
 
 const navLinkBase =
   'flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all duration-200';
@@ -30,6 +31,7 @@ export default function Navbar() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [role, setRole] = useState(localStorage.getItem('role'));
   const [userName, setUserName] = useState(localStorage.getItem('nombre') || '');
+  const [logoUrl, setLogoUrl] = useState(localStorage.getItem('logoUrl') || '');
   const [dropdown, setDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -37,7 +39,43 @@ export default function Navbar() {
     setToken(localStorage.getItem('token'));
     setRole(localStorage.getItem('role'));
     setUserName(localStorage.getItem('nombre') || '');
+    setLogoUrl(localStorage.getItem('logoUrl') || '');
   }, [location.pathname]);
+
+  useEffect(() => {
+    const syncLogo = () => setLogoUrl(localStorage.getItem('logoUrl') || '');
+    window.addEventListener('agent-branding-updated', syncLogo);
+    return () => window.removeEventListener('agent-branding-updated', syncLogo);
+  }, []);
+
+  useEffect(() => {
+    const t = localStorage.getItem('token');
+    const r = localStorage.getItem('role');
+    if (!t || r !== 'AGENTE') return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/agentes/me`, {
+          headers: { Authorization: `Bearer ${t}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const raw = typeof data.logoUrl === 'string' ? data.logoUrl.trim() : '';
+        const next = raw ? normalizeImageUrl(raw) : '';
+        if (cancelled) return;
+        if (next) localStorage.setItem('logoUrl', next);
+        else localStorage.removeItem('logoUrl');
+        setLogoUrl(next);
+      } catch {
+        // avatar con inicial
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname, token, role]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -53,6 +91,7 @@ export default function Navbar() {
     clearSession();
     setToken(null);
     setRole(null);
+    setLogoUrl('');
     setDropdown(false);
     navigate('/login', { replace: true });
   };
@@ -60,8 +99,12 @@ export default function Navbar() {
   const isActive = (path: string) => location.pathname === path;
 
   const avatar = (
-    <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-white text-sm shadow-sm select-none ring-2 ring-indigo-400/40">
-      {(userName ? userName.charAt(0) : 'M').toUpperCase()}
+    <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-white text-sm shadow-sm select-none ring-2 ring-indigo-400/40 overflow-hidden">
+      {logoUrl ? (
+        <img src={logoUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        (userName ? userName.charAt(0) : 'M').toUpperCase()
+      )}
     </div>
   );
 
@@ -94,19 +137,12 @@ export default function Navbar() {
         (location.pathname.startsWith('/dashboard/') &&
           !location.pathname.startsWith('/dashboard/perfil')) ||
         location.pathname.startsWith('/propiedad/editar');
-      const profileActive = location.pathname === '/dashboard/perfil';
 
       return (
-        <>
-          <Link to="/dashboard" className={navLinkClass(panelActive)}>
-            <LayoutDashboard className="h-5 w-5" />
-            Mis propiedades
-          </Link>
-          <Link to="/dashboard/perfil" className={navLinkClass(profileActive)}>
-            <UserCircle className="h-5 w-5" />
-            Mi perfil
-          </Link>
-        </>
+        <Link to="/dashboard" className={navLinkClass(panelActive)}>
+          <LayoutDashboard className="h-5 w-5" />
+          Mis propiedades
+        </Link>
       );
     }
 
@@ -165,6 +201,16 @@ export default function Navbar() {
   const renderMobileLinks = () => (
     <div className="flex flex-col gap-2 py-2">
       {renderLinks()}
+      {token && role === 'AGENTE' && (
+        <Link
+          to="/dashboard/perfil"
+          onClick={() => setIsOpen(false)}
+          className={navLinkClass(isActive('/dashboard/perfil'))}
+        >
+          <UserCircle className="h-5 w-5" />
+          Mi perfil
+        </Link>
+      )}
       {token && (
         <button
           onClick={logout}

@@ -8,6 +8,8 @@ export interface AgentContact {
   email?: string;
   telefono?: string;
   inmobiliaria?: string;
+  logoUrl?: string | null;
+  coverUrl?: string | null;
 }
 
 export interface Property {

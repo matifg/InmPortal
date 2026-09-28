@@ -15,6 +15,7 @@ import RecuperarPassword from './pages/RecuperarPassword';
 import ResetPassword from './pages/ResetPassword';
 import EditProperty from './pages/EditProperty'; // 🔥 IMPORTANTE
 import AgentProfile from './pages/AgentProfile';
+import AgencyPublicProfile from './pages/AgencyPublicProfile';
 import AdminDashboard from './pages/AdminDashboard';
 
 import ProtectedRoute from './components/ProtectedRoute';
@@ -38,6 +39,7 @@ function AppLayout() {
             <Route path="/" element={<Home />} />
             <Route path="/propiedades" element={<Home />} />
             <Route path="/propiedad/:id" element={<PropertyDetail />} />
+            <Route path="/inmobiliaria/:agenteId" element={<AgencyPublicProfile />} />
 
             {/* AUTH */}
             <Route path="/login" element={<Login />} />
