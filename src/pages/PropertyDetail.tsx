@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePageMeta } from '../hooks/usePageMeta';
-import { buildPropertyPageDescription, buildPropertyPageTitle } from '../lib/seo';
+import { buildPropertyJsonLd, buildPropertyPageDescription, buildPropertyPageTitle } from '../lib/seo';
 
 const DESC_COLLAPSE_LEN = 420;
 
@@ -69,6 +69,7 @@ export default function PropertyDetail() {
     url: typeof window !== 'undefined' && id
       ? `${window.location.origin}/propiedad/${id}`
       : undefined,
+    noindex: !loading && (!property || property.publicacionEstado === 'BORRADOR'),
   });
 
   useEffect(() => {
@@ -452,6 +453,18 @@ export default function PropertyDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 lg:pb-12">
+      {isPublished && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: buildPropertyJsonLd(
+              property,
+              `${window.location.origin}/propiedad/${property.id}`,
+              images
+            ),
+          }}
+        />
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-5">
         {/* Breadcrumb */}
         <nav className="flex flex-wrap items-center gap-1 text-sm text-gray-500 min-w-0 mb-4">
@@ -473,7 +486,11 @@ export default function PropertyDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
           {/* Columna principal */}
           <div className="lg:col-span-2 space-y-6 min-w-0">
-            <PropertyGallery images={images} mainMaxHeight={380} />
+            <PropertyGallery
+              images={images}
+              mainMaxHeight={380}
+              altBase={[property.title, property.city].filter(Boolean).join(', ')}
+            />
 
             {/* Mobile: tarjeta de precio */}
             <div className="lg:hidden">{priceCard}</div>

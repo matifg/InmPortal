@@ -8,6 +8,61 @@ export function buildPropertyPageTitle(property: Property): string {
   return [headline, place, op].filter(Boolean).join(' | ');
 }
 
+/**
+ * Datos estructurados schema.org (RealEstateListing + BreadcrumbList) para la ficha.
+ * Devuelve el JSON listo para un <script type="application/ld+json">, con `<` escapado.
+ */
+export function buildPropertyJsonLd(property: Property, pageUrl: string, images: string[]): string {
+  const origin = new URL(pageUrl).origin;
+  const absolute = (src: string) => (/^https?:\/\//i.test(src) ? src : new URL(src, origin).href);
+  const photos = images.filter((src) => src && src !== '/no-image.jpg').map(absolute);
+  const op = property.operation || property.status;
+
+  const listing: Record<string, unknown> = {
+    '@type': 'RealEstateListing',
+    name: property.title,
+    description: buildPropertyPageDescription(property),
+    url: pageUrl,
+    ...(photos.length ? { image: photos } : {}),
+    ...(property.createdAt ? { datePosted: property.createdAt.slice(0, 10) } : {}),
+    contentLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        ...(property.address ? { streetAddress: property.address } : {}),
+        ...(property.city ? { addressLocality: property.city } : {}),
+        addressCountry: 'AR',
+      },
+    },
+  };
+
+  if (!property.ocultarPrecio && property.price > 0 && property.currency) {
+    listing.offers = {
+      '@type': 'Offer',
+      price: property.price,
+      priceCurrency: property.currency,
+      availability: 'https://schema.org/InStock',
+      businessFunction:
+        op === 'Alquiler' || op === 'Temporario'
+          ? 'http://purl.org/goodrelations/v1#LeaseOut'
+          : 'http://purl.org/goodrelations/v1#Sell',
+    };
+  }
+
+  const breadcrumb = {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Catálogo', item: `${origin}/propiedades` },
+      { '@type': 'ListItem', position: 2, name: property.title, item: pageUrl },
+    ],
+  };
+
+  return JSON.stringify({ '@context': 'https://schema.org', '@graph': [listing, breadcrumb] }).replace(
+    /</g,
+    '\\u003c'
+  );
+}
+
 /** Meta description corta (~155 chars) para la ficha. */
 export function buildPropertyPageDescription(property: Property): string {
   const bits: string[] = [];

@@ -31,7 +31,7 @@ export default function Home() {
   usePageMeta(
     'Propiedades en venta y alquiler',
     'Encontrá casas, departamentos y terrenos. Filtrá por ciudad, zona, tipo y operación en Inmo360.',
-    { type: 'website' }
+    { type: 'website', url: '/' }
   );
 
   const [properties, setProperties] = useState<Property[]>([]);

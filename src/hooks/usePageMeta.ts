@@ -12,6 +12,8 @@ export type PageMetaExtras = {
   url?: string | null;
   /** og:type — website (home) o article (ficha). */
   type?: 'website' | 'article';
+  /** Excluye la página del índice (404, borradores, perfiles inexistentes). */
+  noindex?: boolean;
 };
 
 function upsertMetaByName(name: string, content: string) {
@@ -32,6 +34,22 @@ function upsertMetaByProperty(property: string, content: string) {
     document.head.appendChild(el);
   }
   el.setAttribute('content', content);
+}
+
+function upsertCanonical(href: string) {
+  let el = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+  if (!el) {
+    el = document.createElement('link');
+    el.setAttribute('rel', 'canonical');
+    document.head.appendChild(el);
+  }
+  el.setAttribute('href', href);
+}
+
+function setRobots(noindex: boolean) {
+  const el = document.querySelector('meta[name="robots"]');
+  if (noindex) upsertMetaByName('robots', 'noindex, follow');
+  else el?.remove();
 }
 
 function toAbsoluteUrl(url: string): string {
@@ -65,7 +83,7 @@ export function usePageMeta(
   description?: string,
   extras: PageMetaExtras = {}
 ) {
-  const { image, url, type = 'website' } = extras;
+  const { image, url, type = 'website', noindex = false } = extras;
 
   useEffect(() => {
     const fullTitle = title.includes('Inmo360') ? title : `${title} | Inmo360`;
@@ -78,6 +96,8 @@ export function usePageMeta(
 
     document.title = fullTitle;
     upsertMetaByName('description', desc);
+    setRobots(noindex);
+    if (pageUrl) upsertCanonical(pageUrl.split(/[?#]/)[0]);
 
     // Open Graph
     upsertMetaByProperty('og:site_name', 'Inmo360');
@@ -99,6 +119,8 @@ export function usePageMeta(
     return () => {
       document.title = DEFAULT_TITLE;
       upsertMetaByName('description', DEFAULT_DESCRIPTION);
+      setRobots(false);
+      upsertCanonical(toAbsoluteUrl('/'));
       upsertMetaByProperty('og:site_name', 'Inmo360');
       upsertMetaByProperty('og:type', 'website');
       upsertMetaByProperty('og:title', DEFAULT_TITLE);
@@ -111,7 +133,7 @@ export function usePageMeta(
       upsertMetaByName('twitter:description', DEFAULT_DESCRIPTION);
       upsertMetaByName('twitter:image', defaultOgImage());
     };
-  }, [title, description, image, url, type]);
+  }, [title, description, image, url, type, noindex]);
 }
 
 export { DEFAULT_TITLE, DEFAULT_DESCRIPTION, DEFAULT_OG_IMAGE_PATH };

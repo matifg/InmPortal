@@ -6,9 +6,11 @@ interface PropertyGalleryProps {
   images: string[];
   /** Limita la altura de la imagen principal (layout detalle / hero) */
   mainMaxHeight?: number;
+  /** Texto base del alt (ej. "Casa en venta en Baradero"); se le agrega el número de foto. */
+  altBase?: string;
 }
 
-export default function PropertyGallery({ images, mainMaxHeight }: PropertyGalleryProps) {
+export default function PropertyGallery({ images, mainMaxHeight, altBase }: PropertyGalleryProps) {
   const [active, setActive] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -68,7 +70,7 @@ export default function PropertyGallery({ images, mainMaxHeight }: PropertyGalle
           >
             <img
               src={images[active]}
-              alt={`Foto ${active + 1}`}
+              alt={altBase ? `${altBase} – foto ${active + 1}` : `Foto ${active + 1}`}
               className="w-full h-full object-cover"
             />
           </button>

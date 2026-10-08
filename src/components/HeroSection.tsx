@@ -26,10 +26,27 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [locationResetToken, setLocationResetToken] = useState(0);
 
+  // El video (~25 MB) no debe competir con el LCP: se pide recién tras el load de la página.
   useEffect(() => {
-    if (videoFailed) return;
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (conn?.saveData || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setVideoFailed(true);
+      return;
+    }
+    const start = () => setVideoSrc(HERO_VIDEO);
+    if (document.readyState === 'complete') {
+      start();
+      return;
+    }
+    window.addEventListener('load', start, { once: true });
+    return () => window.removeEventListener('load', start);
+  }, []);
+
+  useEffect(() => {
+    if (videoFailed || !videoSrc) return;
 
     const video = videoRef.current;
     if (!video) return;
@@ -55,7 +72,7 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
 
     observer.observe(video);
     return () => observer.disconnect();
-  }, [videoFailed]);
+  }, [videoFailed, videoSrc]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,18 +100,18 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
           fetchPriority="high"
         />
 
-        {!videoFailed && (
+        {!videoFailed && videoSrc && (
           <video
             ref={videoRef}
             className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
               videoReady ? 'opacity-100' : 'opacity-0'
             }`}
-            src={HERO_VIDEO}
+            src={videoSrc}
             muted
             loop
             playsInline
             autoPlay
-            preload="auto"
+            preload="metadata"
             poster={HERO_POSTER}
             aria-hidden
             onLoadedData={() => setVideoReady(true)}

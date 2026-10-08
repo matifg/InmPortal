@@ -29,7 +29,10 @@ export default function AgencyPublicProfile() {
   usePageMeta(
     `${titleName} | Inmo360`,
     `Propiedades publicadas por ${titleName} en Inmo360.`,
-    { image: agent?.coverUrl || agent?.logoUrl || null }
+    {
+      image: agent?.coverUrl || agent?.logoUrl || null,
+      noindex: !loading && !!error && !agent && properties.length === 0,
+    }
   );
 
   useEffect(() => {
@@ -141,7 +144,7 @@ export default function AgencyPublicProfile() {
           <div className="flex flex-col sm:flex-row sm:items-end gap-5">
             <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl bg-white/95 shadow-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-white/40">
               {logoSrc ? (
-                <img src={logoSrc} alt="" className="h-full w-full object-contain p-2" />
+                <img src={logoSrc} alt={`Logo de ${displayName}`} className="h-full w-full object-contain p-2" />
               ) : (
                 <Building2 className="h-10 w-10 text-slate-400" />
               )}

@@ -1,26 +1,31 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
 import Home from './pages/Home';
 import PropertyDetail from './pages/PropertyDetail';
-import AgentPanel from './pages/AgentPanel';
-import PropertyForm from './pages/PropertyForm';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import RegisterConfirm from './pages/RegisterConfirm';
-import VerifyEmail from './pages/VerifyEmail';
-import RecuperarPassword from './pages/RecuperarPassword';
-import ResetPassword from './pages/ResetPassword';
-import EditProperty from './pages/EditProperty'; // 🔥 IMPORTANTE
-import AgentProfile from './pages/AgentProfile';
 import AgencyPublicProfile from './pages/AgencyPublicProfile';
-import AdminDashboard from './pages/AdminDashboard';
+import NotFound from './pages/NotFound';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import SessionManager from './components/SessionManager';
 import ScrollToTop from './components/ScrollToTop';
+
+// Panel, auth y admin no se indexan: se cargan bajo demanda para aliviar el bundle público.
+const AgentPanel = lazy(() => import('./pages/AgentPanel'));
+const PropertyForm = lazy(() => import('./pages/PropertyForm'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const RegisterConfirm = lazy(() => import('./pages/RegisterConfirm'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const RecuperarPassword = lazy(() => import('./pages/RecuperarPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const EditProperty = lazy(() => import('./pages/EditProperty')); // 🔥 IMPORTANTE
+const AgentProfile = lazy(() => import('./pages/AgentProfile'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
 const AUTH_PATHS = ['/login', '/register', '/registro/confirmacion', '/verificar-email', '/recuperar-password', '/restablecer-password'];
 
@@ -33,6 +38,13 @@ function AppLayout() {
       <Toaster position="top-right" />
       {!isAuthPage && <Navbar />}
       <div className={isAuthPage ? 'flex-1 min-h-0 overflow-y-auto' : 'flex-grow'}>
+        <Suspense
+          fallback={
+            <div className="min-h-[50vh] flex items-center justify-center">
+              <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
+            </div>
+          }
+        >
         <Routes>
 
             {/* PUBLICAS */}
@@ -84,7 +96,10 @@ function AppLayout() {
               </ProtectedRoute>
             } />
 
+            <Route path="*" element={<NotFound />} />
+
         </Routes>
+        </Suspense>
       </div>
       {!isAuthPage && <Footer />}
     </div>
