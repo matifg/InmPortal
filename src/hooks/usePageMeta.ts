@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 
-const DEFAULT_TITLE = 'Inmo360 | Propiedades en venta y alquiler';
+const DEFAULT_TITLE = 'Inmo360 | Casas, departamentos y terrenos en venta y alquiler';
 const DEFAULT_DESCRIPTION =
-  'Encontrá casas, departamentos y terrenos en venta o alquiler. Catálogo inmobiliario Inmo360.';
-const DEFAULT_OG_IMAGE_PATH = '/favicon-192.png';
+  'Encontrá casas, departamentos y terrenos en venta y alquiler en Argentina. Filtrá por provincia, ciudad, zona y operación y contactá directo a la inmobiliaria.';
+const DEFAULT_OG_IMAGE_PATH = '/og-image.jpg';
+const DEFAULT_OG_IMAGE_WIDTH = '1200';
+const DEFAULT_OG_IMAGE_HEIGHT = '630';
 
 export type PageMetaExtras = {
   /** Imagen de portada (absoluta o relativa). */
@@ -34,6 +36,21 @@ function upsertMetaByProperty(property: string, content: string) {
     document.head.appendChild(el);
   }
   el.setAttribute('content', content);
+}
+
+function removeMetaByProperty(property: string) {
+  document.querySelector(`meta[property="${property}"]`)?.remove();
+}
+
+/** Las medidas solo se conocen para la imagen por defecto; con fotos de propiedades se omiten. */
+function setOgImageSize(isDefaultImage: boolean) {
+  if (isDefaultImage) {
+    upsertMetaByProperty('og:image:width', DEFAULT_OG_IMAGE_WIDTH);
+    upsertMetaByProperty('og:image:height', DEFAULT_OG_IMAGE_HEIGHT);
+  } else {
+    removeMetaByProperty('og:image:width');
+    removeMetaByProperty('og:image:height');
+  }
 }
 
 function upsertCanonical(href: string) {
@@ -90,14 +107,16 @@ export function usePageMeta(
     const desc = (description?.trim() || DEFAULT_DESCRIPTION).slice(0, 160);
     const pageUrl = toAbsoluteUrl(url?.trim() || defaultPageUrl());
     const rawImage = image?.trim();
-    const imageUrl = rawImage && rawImage !== '/no-image.jpg'
-      ? toAbsoluteUrl(rawImage)
-      : defaultOgImage();
+    const hasOwnImage = Boolean(rawImage && rawImage !== '/no-image.jpg');
+    const imageUrl = hasOwnImage ? toAbsoluteUrl(rawImage!) : defaultOgImage();
 
     document.title = fullTitle;
     upsertMetaByName('description', desc);
     setRobots(noindex);
-    if (pageUrl) upsertCanonical(pageUrl.split(/[?#]/)[0]);
+    // Una URL explícita conserva su query (ej. ?page=2); la de location se limpia de parámetros arbitrarios.
+    if (pageUrl) {
+      upsertCanonical(url?.trim() ? pageUrl.split('#')[0] : pageUrl.split(/[?#]/)[0]);
+    }
 
     // Open Graph
     upsertMetaByProperty('og:site_name', 'Inmo360');
@@ -108,6 +127,7 @@ export function usePageMeta(
     if (imageUrl) {
       upsertMetaByProperty('og:image', imageUrl);
       upsertMetaByProperty('og:image:alt', fullTitle);
+      setOgImageSize(!hasOwnImage);
     }
 
     // Twitter / X
@@ -128,6 +148,7 @@ export function usePageMeta(
       upsertMetaByProperty('og:url', toAbsoluteUrl('/'));
       upsertMetaByProperty('og:image', defaultOgImage());
       upsertMetaByProperty('og:image:alt', DEFAULT_TITLE);
+      setOgImageSize(true);
       upsertMetaByName('twitter:card', 'summary_large_image');
       upsertMetaByName('twitter:title', DEFAULT_TITLE);
       upsertMetaByName('twitter:description', DEFAULT_DESCRIPTION);

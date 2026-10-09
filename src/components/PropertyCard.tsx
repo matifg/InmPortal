@@ -59,6 +59,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
               alt={property.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               loading="lazy"
+              decoding="async"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
@@ -119,8 +120,11 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             <img
               src={logoSrc}
               alt=""
+              width={36}
+              height={36}
               className="h-9 w-9 rounded-lg object-contain shrink-0 bg-transparent"
               loading="lazy"
+              decoding="async"
             />
           ) : (
             <div className="h-9 w-9 rounded-lg bg-slate-200/80 flex items-center justify-center shrink-0">

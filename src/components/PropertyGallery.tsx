@@ -72,6 +72,7 @@ export default function PropertyGallery({ images, mainMaxHeight, altBase }: Prop
               src={images[active]}
               alt={altBase ? `${altBase} – foto ${active + 1}` : `Foto ${active + 1}`}
               className="w-full h-full object-cover"
+              fetchPriority="high"
             />
           </button>
 
@@ -121,9 +122,10 @@ export default function PropertyGallery({ images, mainMaxHeight, altBase }: Prop
               >
                 <img
                   src={src}
-                  alt=""
+                  alt={altBase ? `${altBase} – foto ${i + 1}` : `Foto ${i + 1}`}
                   className="w-full h-full object-cover"
                   loading="lazy"
+                  decoding="async"
                 />
               </button>
             ))}

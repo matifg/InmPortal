@@ -20,7 +20,7 @@ const MODE_CONFIG = {
   },
   agente: {
     subtitle: 'Gestioná tus propiedades desde un solo lugar',
-    image: '/casa-register.png',
+    image: '/casa-register.jpg',
     overlay: 'bg-indigo-950/70',
     button: 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-400/40',
     tabActive: 'bg-indigo-600 text-white shadow',

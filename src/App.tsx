@@ -26,6 +26,8 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const EditProperty = lazy(() => import('./pages/EditProperty')); // 🔥 IMPORTANTE
 const AgentProfile = lazy(() => import('./pages/AgentProfile'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const PoliticaPrivacidad = lazy(() => import('./pages/PoliticaPrivacidad'));
+const TerminosCondiciones = lazy(() => import('./pages/TerminosCondiciones'));
 
 const AUTH_PATHS = ['/login', '/register', '/registro/confirmacion', '/verificar-email', '/recuperar-password', '/restablecer-password'];
 
@@ -52,6 +54,8 @@ function AppLayout() {
             <Route path="/propiedades" element={<Home />} />
             <Route path="/propiedad/:id" element={<PropertyDetail />} />
             <Route path="/inmobiliaria/:agenteId" element={<AgencyPublicProfile />} />
+            <Route path="/politica-de-privacidad" element={<PoliticaPrivacidad />} />
+            <Route path="/terminos-y-condiciones" element={<TerminosCondiciones />} />
 
             {/* AUTH */}
             <Route path="/login" element={<Login />} />

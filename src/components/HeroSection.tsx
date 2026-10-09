@@ -5,8 +5,11 @@ import { getZonesForCity } from '../lib/cityZones';
 import CityLocationFilters from './CityLocationFilters';
 
 const HERO_VIDEO = '/videos/hero.mp4';
-const HERO_POSTER =
-  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
+const HERO_POSTER = '/images/hero-1280.webp';
+const HERO_POSTER_SRCSET =
+  '/images/hero-768.webp 768w, /images/hero-1280.webp 1280w, /images/hero-1920.webp 1920w';
+/** En mobile el video (~25 MB) no compensa: queda solo el poster. */
+const VIDEO_MIN_WIDTH_QUERY = '(min-width: 768px)';
 
 interface HeroSectionProps {
   filters: PropertySearchFilters;
@@ -32,7 +35,11 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
   // El video (~25 MB) no debe competir con el LCP: se pide recién tras el load de la página.
   useEffect(() => {
     const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    if (conn?.saveData || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      conn?.saveData ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      !window.matchMedia(VIDEO_MIN_WIDTH_QUERY).matches
+    ) {
       setVideoFailed(true);
       return;
     }
@@ -92,6 +99,8 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
       <div className="absolute inset-0 overflow-hidden bg-slate-950">
         <img
           src={HERO_POSTER}
+          srcSet={HERO_POSTER_SRCSET}
+          sizes="100vw"
           alt=""
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
             videoReady && !videoFailed ? 'opacity-0' : 'opacity-100'
@@ -136,10 +145,10 @@ export default function HeroSection({ filters, onFiltersChange, onSearch, onClea
             Catálogo Inmo360
           </p>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight drop-shadow-sm">
-            Encontrá tu próxima propiedad
+            Propiedades en venta y alquiler
           </h1>
-          <p className="mt-3 text-base sm:text-lg text-slate-200 max-w-xl mx-auto sm:mx-0 drop-shadow-sm">
-            Filtrá por provincia, ciudad, zona, tipo y operación.
+          <p className="mt-3 text-base sm:text-lg text-slate-200 max-w-2xl mx-auto sm:mx-0 drop-shadow-sm">
+            Casas, departamentos y terrenos. Filtrá por provincia, ciudad, zona y operación.
           </p>
         </div>
 

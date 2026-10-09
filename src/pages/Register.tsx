@@ -26,7 +26,7 @@ const ROLE_CONFIG = {
   AGENTE: {
     title: 'Publicá como agente',
     subtitle: 'Gestioná tus propiedades desde un panel',
-    image: '/casa-register.png',
+    image: '/casa-register.jpg',
     overlay: 'bg-indigo-950/75',
     tabActive: 'bg-indigo-600 text-white shadow',
     button: 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500/40',

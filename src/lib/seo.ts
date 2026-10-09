@@ -52,7 +52,7 @@ export function buildPropertyJsonLd(property: Property, pageUrl: string, images:
   const breadcrumb = {
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Catálogo', item: `${origin}/propiedades` },
+      { '@type': 'ListItem', position: 1, name: 'Catálogo', item: `${origin}/` },
       { '@type': 'ListItem', position: 2, name: property.title, item: pageUrl },
     ],
   };

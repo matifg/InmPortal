@@ -230,8 +230,10 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2.5 group">
               <img
-                src="/favicon.png"
+                src="/logo-96.png"
                 alt="Inmo360"
+                width={48}
+                height={48}
                 className="h-11 w-11 sm:h-12 sm:w-12 object-contain shrink-0 transition-transform group-hover:scale-105"
               />
               <span className="font-bold text-xl text-white tracking-tight">Inmo360</span>

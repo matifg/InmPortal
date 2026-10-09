@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import HeroSection from '../components/HeroSection';
 import ScrollFab from '../components/ScrollFab';
 import PropertyCard from '../components/PropertyCard';
@@ -21,18 +22,33 @@ import {
   hasActiveFilters,
 } from '../lib/filterProperties';
 import { getZonesForCity } from '../lib/cityZones';
-import { usePageMeta } from '../hooks/usePageMeta';
+import { DEFAULT_DESCRIPTION, usePageMeta } from '../hooks/usePageMeta';
+
+const pagerBtnClass =
+  'inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition';
 
 const DEFAULT_PAGE_SIZE = 20;
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 type SortOption = 'recent' | 'price-asc' | 'price-desc';
 
+function sameFilters(a: PropertySearchFilters, b: PropertySearchFilters): boolean {
+  return (Object.keys(a) as (keyof PropertySearchFilters)[]).every((key) => a[key] === b[key]);
+}
+
+function parsePage(raw: string | null): number {
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 1 ? n : 1;
+}
+
 export default function Home() {
-  usePageMeta(
-    'Propiedades en venta y alquiler',
-    'Encontrá casas, departamentos y terrenos. Filtrá por ciudad, zona, tipo y operación en Inmo360.',
-    { type: 'website', url: '/' }
-  );
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parsePage(searchParams.get('page'));
+
+  usePageMeta('Casas, departamentos y terrenos en venta y alquiler', DEFAULT_DESCRIPTION, {
+    type: 'website',
+    url: currentPage > 1 ? `/?page=${currentPage}` : '/',
+  });
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,10 +58,29 @@ export default function Home() {
   const [appliedFilters, setAppliedFilters] = useState<PropertySearchFilters>(EMPTY_PROPERTY_FILTERS);
 
   const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_PAGE_SIZE);
-  const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>('recent');
 
   const listadoRef = useRef<HTMLElement>(null);
+
+  const setCurrentPage = useCallback(
+    (page: number) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (page > 1) next.set('page', String(page));
+          else next.delete('page');
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  const pageLink = (page: number) => ({
+    pathname: location.pathname,
+    search: page > 1 ? `?page=${page}` : '',
+  });
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -84,20 +119,25 @@ export default function Home() {
     return filteredProperties.slice(start, start + itemsPerPage);
   }, [filteredProperties, currentPage, itemsPerPage]);
 
+  // Solo vuelve a la página 1 si cambian filtros o tamaño de página, no al montar con ?page=N.
+  const lastPagingRef = useRef({ filters: appliedFilters, itemsPerPage });
   useEffect(() => {
+    const last = lastPagingRef.current;
+    if (sameFilters(last.filters, appliedFilters) && last.itemsPerPage === itemsPerPage) return;
+    lastPagingRef.current = { filters: appliedFilters, itemsPerPage };
     setCurrentPage(1);
-  }, [appliedFilters, itemsPerPage]);
+  }, [appliedFilters, itemsPerPage, setCurrentPage]);
 
   useEffect(() => {
+    if (loading) return;
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
-  }, [currentPage, totalPages]);
+  }, [loading, currentPage, totalPages, setCurrentPage]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setAppliedFilters({ ...draftFilters });
-      setCurrentPage(1);
+      setAppliedFilters((prev) => (sameFilters(prev, draftFilters) ? prev : { ...draftFilters }));
     }, 350);
 
     return () => window.clearTimeout(timeout);
@@ -337,27 +377,31 @@ export default function Home() {
                 className="mt-10 flex items-center justify-center gap-3"
                 aria-label="Paginación"
               >
-                <button
-                  type="button"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                  className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Anterior
-                </button>
+                {currentPage === 1 ? (
+                  <span aria-disabled="true" className={`${pagerBtnClass} opacity-40 cursor-not-allowed`}>
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </span>
+                ) : (
+                  <Link to={pageLink(currentPage - 1)} rel="prev" className={`${pagerBtnClass} hover:bg-slate-50`}>
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </Link>
+                )}
                 <span className="min-w-[7rem] text-center text-sm font-medium text-slate-600 tabular-nums">
                   {currentPage} / {totalPages}
                 </span>
-                <button
-                  type="button"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                >
-                  Siguiente
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+                {currentPage === totalPages ? (
+                  <span aria-disabled="true" className={`${pagerBtnClass} opacity-40 cursor-not-allowed`}>
+                    Siguiente
+                    <ChevronRight className="h-4 w-4" />
+                  </span>
+                ) : (
+                  <Link to={pageLink(currentPage + 1)} rel="next" className={`${pagerBtnClass} hover:bg-slate-50`}>
+                    Siguiente
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                )}
               </nav>
             )}
           </>

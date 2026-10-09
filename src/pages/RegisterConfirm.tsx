@@ -24,7 +24,7 @@ export default function RegisterConfirm() {
     <div className="relative min-h-dvh flex items-center justify-center p-4 sm:p-6 bg-slate-950">
       <div
         className="absolute inset-0 bg-cover bg-center opacity-30"
-        style={{ backgroundImage: `url('${isAgente ? '/casa-register.png' : '/casa-login.jpg'}')` }}
+        style={{ backgroundImage: `url('${isAgente ? '/casa-register.jpg' : '/casa-login.jpg'}')` }}
         aria-hidden
       />
       <div

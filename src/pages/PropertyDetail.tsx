@@ -35,6 +35,24 @@ function hasCount(n?: number | null): n is number {
   return typeof n === 'number' && n > 0;
 }
 
+const DESKTOP_QUERY = '(min-width: 1024px)';
+
+/** Mismo corte que `lg:`. La tarjeta de precio (con el h1) se monta una sola vez según el layout. */
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(DESKTOP_QUERY).matches
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(DESKTOP_QUERY);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return isDesktop;
+}
+
 function WhatsAppIcon({ className = '' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
@@ -53,6 +71,7 @@ export default function PropertyDetail() {
   const [loading, setLoading] = useState(true);
   const [descExpanded, setDescExpanded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const isDesktop = useIsDesktop();
 
   const pageTitle = loading
     ? 'Cargando propiedad'
@@ -73,58 +92,72 @@ export default function PropertyDetail() {
   });
 
   useEffect(() => {
-    const fetchProperty = async () => {
-      if (!id) return;
+    if (!id) return;
+    let cancelled = false;
 
+    // Las similares necesitan el catálogo completo: se cargan aparte para no frenar la ficha.
+    const loadSimilar = (city?: string) => {
+      const cityNorm = city?.trim().toLowerCase();
+      if (!cityNorm) return;
+      api
+        .getProperties()
+        .then((all) => {
+          if (cancelled) return;
+          setSimilar(
+            all
+              .filter((p) => p.id !== id && p.city?.trim().toLowerCase() === cityNorm)
+              .slice(0, 3)
+          );
+        })
+        .catch(() => {});
+    };
+
+    const fetchProperty = async () => {
       setLoading(true);
       setProperty(null);
+      setSimilar([]);
       setDescExpanded(false);
       window.scrollTo({ top: 0, behavior: 'instant' });
 
       try {
-        const [data, all] = await Promise.all([
+        const token = localStorage.getItem('token');
+        const [data, imagenes] = await Promise.all([
           api.getPropertyById(id),
-          api.getProperties().catch(() => [] as Property[]),
+          fetch(`${import.meta.env.VITE_API_URL}/imagenes/propiedad/${id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          })
+            .then((res) => (res.ok ? res.json() : []))
+            .catch(() => []),
         ]);
+        if (cancelled) return;
 
         if (!data) {
           setProperty(null);
           return;
         }
 
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/imagenes/propiedad/${id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const imagenes = res.ok ? await res.json() : [];
-
-        setProperty({ ...data, imagenes });
+        loadSimilar(data.city);
 
         const contact = data.agentId
           ? await resolveAgentContact(data.agentId, data.agent ?? null, token)
           : data.agent ?? null;
-        setAgent(contact);
+        if (cancelled) return;
 
-        const cityNorm = data.city?.trim().toLowerCase();
-        setSimilar(
-          all
-            .filter(
-              (p) =>
-                p.id !== id &&
-                cityNorm &&
-                p.city?.trim().toLowerCase() === cityNorm
-            )
-            .slice(0, 3)
-        );
+        setProperty({ ...data, imagenes });
+        setAgent(contact);
       } catch (error) {
+        if (cancelled) return;
         console.error('Error fetching property:', error);
         setProperty(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchProperty();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   useEffect(() => {
@@ -493,7 +526,7 @@ export default function PropertyDetail() {
             />
 
             {/* Mobile: tarjeta de precio */}
-            <div className="lg:hidden">{priceCard}</div>
+            {!isDesktop && <div className="lg:hidden">{priceCard}</div>}
 
             {/* Características — asoma en viewport inicial */}
             <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-200 shadow-sm -mt-2 lg:mt-0">
@@ -582,9 +615,11 @@ export default function PropertyDetail() {
           </div>
 
           {/* Sidebar sticky — desktop */}
-          <aside className="hidden lg:block lg:col-span-1">
-            <div className="sticky top-20">{priceCard}</div>
-          </aside>
+          {isDesktop && (
+            <aside className="hidden lg:block lg:col-span-1">
+              <div className="sticky top-20">{priceCard}</div>
+            </aside>
+          )}
         </div>
       </div>
 

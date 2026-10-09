@@ -25,8 +25,11 @@ export default function Footer() {
               className="inline-flex items-center gap-2.5 group mb-5 transition-all duration-200"
             >
               <img
-                src="/favicon.png"
+                src="/logo-96.png"
                 alt="Inmo360"
+                width={44}
+                height={44}
+                loading="lazy"
                 className="h-11 w-11 object-contain shrink-0 transition-transform duration-200 group-hover:scale-105"
               />
               <span className="font-bold text-xl text-white tracking-tight group-hover:text-indigo-300 transition-colors duration-200">

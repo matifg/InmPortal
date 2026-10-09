@@ -75,10 +75,8 @@ async function fetchPropertyIds(apiUrl: string): Promise<{ id: string; updatedAt
 
 async function buildSitemapXml(siteUrl: string, apiUrl: string): Promise<string> {
   const today = new Date().toISOString().slice(0, 10);
-  const entries = [
-    sitemapUrlEntry(`${siteUrl}/`, 'daily', '1.0', today),
-    sitemapUrlEntry(`${siteUrl}/propiedades`, 'daily', '0.9', today),
-  ];
+  // /propiedades no va: renderiza el mismo catálogo y su canonical es /.
+  const entries = [sitemapUrlEntry(`${siteUrl}/`, 'daily', '1.0', today)];
 
   const props = await fetchPropertyIds(apiUrl);
   for (const p of props) {
@@ -96,6 +94,7 @@ ${entries.join('\n')}
 
 /**
  * Sirve /robots.txt y /sitemap.xml en dev, y los escribe en dist al build.
+ * También reemplaza __SITE_URL__ en index.html (og:image necesita URL absoluta).
  */
 export function seoStaticFilesPlugin(options: SeoStaticFilesOptions = {}): Plugin {
   let siteUrl = normalizeBaseUrl(options.siteUrl || 'http://localhost:3000');
@@ -106,6 +105,9 @@ export function seoStaticFilesPlugin(options: SeoStaticFilesOptions = {}): Plugi
     name: 'inmo360-seo-static-files',
     configResolved(config: ResolvedConfig) {
       outDir = path.resolve(config.root, config.build.outDir);
+    },
+    transformIndexHtml(html) {
+      return html.replaceAll('__SITE_URL__', siteUrl);
     },
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
