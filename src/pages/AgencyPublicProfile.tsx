@@ -17,6 +17,7 @@ import {
   phoneForWhatsApp,
 } from '../lib/agentContact';
 import { usePageMeta } from '../hooks/usePageMeta';
+import { buildAgencyJsonLd } from '../lib/seo';
 
 export default function AgencyPublicProfile() {
   const { agenteId } = useParams<{ agenteId: string }>();
@@ -115,6 +116,18 @@ export default function AgencyPublicProfile() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {agent && agenteId && properties.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: buildAgencyJsonLd(
+              agent,
+              agenteId,
+              `${window.location.origin}/inmobiliaria/${agenteId}`
+            ),
+          }}
+        />
+      )}
       <div className="relative overflow-hidden border-b border-slate-200">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-indigo-950" />
         {coverSrc && (

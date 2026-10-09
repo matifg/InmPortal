@@ -1,14 +1,17 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-AR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta
       name="description"
       content="Encontrá casas, departamentos y terrenos en venta y alquiler en Argentina. Filtrá por provincia, ciudad, zona y operación y contactá directo a la inmobiliaria."
     />
     <meta property="og:site_name" content="Inmo360" />
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_AR" />
     <meta property="og:title" content="Inmo360 | Casas, departamentos y terrenos en venta y alquiler" />
     <meta
       property="og:description"
@@ -30,6 +33,39 @@
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <title>Inmo360 | Casas, departamentos y terrenos en venta y alquiler</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "__SITE_URL__/#organization",
+            "name": "Inmo360",
+            "url": "__SITE_URL__/",
+            "logo": "__SITE_URL__/favicon-192.png",
+            "image": "__SITE_URL__/og-image.jpg",
+            "description": "Plataforma que conecta propietarios, inmobiliarias y compradores.",
+            "email": "contacto@inmobiliaria360.com.ar",
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "contactType": "customer support",
+              "telephone": "+5493329691846",
+              "email": "contacto@inmobiliaria360.com.ar",
+              "areaServed": "AR",
+              "availableLanguage": "es"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "__SITE_URL__/#website",
+            "name": "Inmo360",
+            "url": "__SITE_URL__/",
+            "inLanguage": "es-AR",
+            "publisher": { "@id": "__SITE_URL__/#organization" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

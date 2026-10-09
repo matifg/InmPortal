@@ -45,16 +45,57 @@ function buildRobotsTxt(siteUrl: string): string {
   ].join('\n');
 }
 
-function sitemapUrlEntry(loc: string, changefreq: string, priority: string, lastmod?: string): string {
+/** Google acepta hasta 1000 imágenes por URL; con las primeras alcanza para indexar la galería. */
+const MAX_IMAGES_PER_PROPERTY = 10;
+
+type SitemapEntry = {
+  loc: string;
+  changefreq: string;
+  priority: string;
+  lastmod?: string;
+  images?: string[];
+};
+
+type PublishedProperty = {
+  id: string;
+  agentId?: string;
+  lastmod?: string;
+  images: string[];
+};
+
+function sitemapUrlEntry({ loc, changefreq, priority, lastmod, images = [] }: SitemapEntry): string {
   const lastmodLine = lastmod ? `\n    <lastmod>${escapeXml(lastmod)}</lastmod>` : '';
+  const imageLines = images
+    .map((src) => `\n    <image:image>\n      <image:loc>${escapeXml(src)}</image:loc>\n    </image:image>`)
+    .join('');
   return `  <url>
     <loc>${escapeXml(loc)}</loc>${lastmodLine}
     <changefreq>${changefreq}</changefreq>
-    <priority>${priority}</priority>
+    <priority>${priority}</priority>${imageLines}
   </url>`;
 }
 
-async function fetchPropertyIds(apiUrl: string): Promise<{ id: string; updatedAt?: string }[]> {
+/** Misma regla que normalizeImageUrl del front: las rutas relativas cuelgan de la API. */
+function absoluteImageUrl(raw: unknown, apiUrl: string): string | null {
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const url = raw.trim();
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${apiUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function propertyImages(item: any, apiUrl: string): string[] {
+  const gallery = Array.isArray(item.imagenes)
+    ? [...item.imagenes]
+        .sort((a, b) => (a?.orden ?? 0) - (b?.orden ?? 0))
+        .map((img) => absoluteImageUrl(img?.url, apiUrl))
+    : [];
+  const all = [absoluteImageUrl(item.imageUrl, apiUrl), ...gallery].filter(
+    (src): src is string => Boolean(src)
+  );
+  return [...new Set(all)].slice(0, MAX_IMAGES_PER_PROPERTY);
+}
+
+async function fetchPublishedProperties(apiUrl: string): Promise<PublishedProperty[]> {
   try {
     const res = await fetch(`${apiUrl}/propiedades`, {
       headers: { Accept: 'application/json' },
@@ -66,7 +107,9 @@ async function fetchPropertyIds(apiUrl: string): Promise<{ id: string; updatedAt
       .filter((p) => p && p.id && (p.publicacionEstado == null || p.publicacionEstado === 'PUBLICADA'))
       .map((p) => ({
         id: String(p.id),
-        updatedAt: typeof p.creadoEn === 'string' ? p.creadoEn.slice(0, 10) : undefined,
+        agentId: p.agenteId != null ? String(p.agenteId) : undefined,
+        lastmod: typeof p.creadoEn === 'string' ? p.creadoEn.slice(0, 10) : undefined,
+        images: propertyImages(p, apiUrl),
       }));
   } catch {
     return [];
@@ -76,18 +119,37 @@ async function fetchPropertyIds(apiUrl: string): Promise<{ id: string; updatedAt
 async function buildSitemapXml(siteUrl: string, apiUrl: string): Promise<string> {
   const today = new Date().toISOString().slice(0, 10);
   // /propiedades no va: renderiza el mismo catálogo y su canonical es /.
-  const entries = [sitemapUrlEntry(`${siteUrl}/`, 'daily', '1.0', today)];
+  const entries: SitemapEntry[] = [{ loc: `${siteUrl}/`, changefreq: 'daily', priority: '1.0', lastmod: today }];
 
-  const props = await fetchPropertyIds(apiUrl);
+  const props = await fetchPublishedProperties(apiUrl);
+  // Solo inmobiliarias con al menos una publicación: los perfiles vacíos llevan noindex.
+  const agencyLastmod = new Map<string, string>();
   for (const p of props) {
-    entries.push(
-      sitemapUrlEntry(`${siteUrl}/propiedad/${p.id}`, 'weekly', '0.8', p.updatedAt || today)
-    );
+    entries.push({
+      loc: `${siteUrl}/propiedad/${p.id}`,
+      changefreq: 'weekly',
+      priority: '0.8',
+      lastmod: p.lastmod || today,
+      images: p.images,
+    });
+    if (p.agentId) {
+      const current = agencyLastmod.get(p.agentId);
+      const candidate = p.lastmod || today;
+      if (!current || candidate > current) agencyLastmod.set(p.agentId, candidate);
+    }
+  }
+
+  for (const [agentId, lastmod] of agencyLastmod) {
+    entries.push({ loc: `${siteUrl}/inmobiliaria/${agentId}`, changefreq: 'weekly', priority: '0.6', lastmod });
+  }
+
+  for (const legalPath of ['/politica-de-privacidad', '/terminos-y-condiciones']) {
+    entries.push({ loc: `${siteUrl}${legalPath}`, changefreq: 'yearly', priority: '0.2' });
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${entries.join('\n')}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+${entries.map(sitemapUrlEntry).join('\n')}
 </urlset>
 `;
 }

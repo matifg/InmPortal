@@ -493,7 +493,8 @@ export default function PropertyDetail() {
             __html: buildPropertyJsonLd(
               property,
               `${window.location.origin}/propiedad/${property.id}`,
-              images
+              images,
+              agent
             ),
           }}
         />
