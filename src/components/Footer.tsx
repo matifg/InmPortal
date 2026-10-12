@@ -26,7 +26,7 @@ export default function Footer() {
             >
               <img
                 src="/logo-96.png"
-                alt="Inmo360"
+                alt=""
                 width={44}
                 height={44}
                 loading="lazy"
@@ -54,7 +54,7 @@ export default function Footer() {
                 >
                   <MessageCircle className="h-5 w-5 shrink-0 mt-0.5 text-indigo-400 group-hover:text-indigo-300 transition-all duration-200" />
                   <span className="min-w-0">
-                    <span className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-0.5">
+                    <span className="block text-xs font-medium text-slate-400 uppercase tracking-wide mb-0.5">
                       WhatsApp
                     </span>
                     <span className="text-sm text-slate-300 whitespace-nowrap group-hover:text-indigo-400 transition-all duration-200">
@@ -70,7 +70,7 @@ export default function Footer() {
                 >
                   <Mail className="h-5 w-5 shrink-0 mt-0.5 text-indigo-400 group-hover:text-indigo-300 transition-all duration-200" />
                   <span className="min-w-0">
-                    <span className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-0.5">
+                    <span className="block text-xs font-medium text-slate-400 uppercase tracking-wide mb-0.5">
                       Email
                     </span>
                     <span className="text-sm text-slate-300 whitespace-nowrap group-hover:text-indigo-400 transition-all duration-200">
@@ -118,7 +118,7 @@ export default function Footer() {
               rel="noopener noreferrer"
               className="group block h-full rounded-xl border border-indigo-500/25 bg-slate-800/70 px-5 py-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-500/50 hover:bg-slate-800 hover:shadow-lg hover:shadow-indigo-500/15"
             >
-              <span className="block text-lg font-bold text-indigo-500 group-hover:text-indigo-400 transition-all duration-200">
+              <span className="block text-lg font-bold text-indigo-400 group-hover:text-indigo-300 transition-all duration-200">
                 Baradero Devs
               </span>
               <span className="block text-sm text-slate-400 mt-1 group-hover:text-slate-300 transition-all duration-200">
@@ -130,7 +130,7 @@ export default function Footer() {
 
         <div className="mt-14 sm:mt-16 pt-8 border-t border-slate-800">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
-            <p className="text-xs sm:text-sm text-slate-500 shrink-0">
+            <p className="text-xs sm:text-sm text-slate-400 shrink-0">
               © 2026 Inmo360. Todos los derechos reservados.
             </p>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 lg:justify-end">

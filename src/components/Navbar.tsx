@@ -231,7 +231,7 @@ export default function Navbar() {
             <Link to="/" className="flex items-center gap-2.5 group">
               <img
                 src="/logo-96.png"
-                alt="Inmo360"
+                alt=""
                 width={48}
                 height={48}
                 className="h-11 w-11 sm:h-12 sm:w-12 object-contain shrink-0 transition-transform group-hover:scale-105"
