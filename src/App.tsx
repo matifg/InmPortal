@@ -7,12 +7,14 @@ import Footer from './components/Footer';
 
 import Home from './pages/Home';
 import PropertyDetail from './pages/PropertyDetail';
-import AgencyPublicProfile from './pages/AgencyPublicProfile';
-import NotFound from './pages/NotFound';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import SessionManager from './components/SessionManager';
 import ScrollToTop from './components/ScrollToTop';
+
+// Home y ficha quedan en el bundle inicial: son las páginas de entrada desde Google.
+const AgencyPublicProfile = lazy(() => import('./pages/AgencyPublicProfile'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Panel, auth y admin no se indexan: se cargan bajo demanda para aliviar el bundle público.
 const AgentPanel = lazy(() => import('./pages/AgentPanel'));

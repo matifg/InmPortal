@@ -407,6 +407,43 @@ export default function Home() {
           </>
         )}
       </main>
+
+      <section className="border-t border-slate-200 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Casas, departamentos y terrenos en Argentina
+          </h2>
+          <p className="mt-3 max-w-3xl text-slate-600 text-sm sm:text-base leading-relaxed">
+            Inmo360 reúne en un solo lugar las propiedades en venta y alquiler que publican inmobiliarias de
+            todo el país. Buscá por provincia, ciudad y zona, compará precio, metros y ambientes, y contactá
+            directo a la inmobiliaria por WhatsApp.
+          </p>
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <h3 className="font-semibold text-slate-900">Comprar</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Casas, departamentos y terrenos en venta, con fotos, precio y ubicación de cada propiedad.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Alquilar</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Casas y departamentos en alquiler, filtrados por ciudad y zona para encontrar lo que buscás.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Publicar</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                ¿Sos inmobiliaria?{' '}
+                <Link to="/dashboard/nueva-propiedad" className="font-medium text-indigo-600 hover:text-indigo-700">
+                  Publicá tus propiedades
+                </Link>{' '}
+                y recibí consultas directas de interesados.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
