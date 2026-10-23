@@ -287,6 +287,19 @@ export default function PropertyDetail() {
       : null,
   ].filter(Boolean) as { value: string | number; label: string; emoji: string }[];
 
+  const serviceChips = (
+    [
+      { key: 'luz', label: 'Luz' },
+      { key: 'agua', label: 'Agua' },
+      { key: 'gas', label: 'Gas' },
+      { key: 'pavimento', label: 'Pavimento' },
+      { key: 'cloacas', label: 'Cloacas' },
+      { key: 'aptaCredito', label: 'Apta crédito' },
+    ] as const
+  )
+    .filter(({ key }) => property[key])
+    .map(({ label }) => label);
+
   const secondaryActionBtn =
     'flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 hover:border-gray-300 transition-all duration-200';
 
@@ -544,6 +557,23 @@ export default function PropertyDetail() {
                   </div>
                 ))}
               </div>
+              {serviceChips.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2.5">
+                    Servicios
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {serviceChips.map((label) => (
+                      <span
+                        key={label}
+                        className="inline-flex items-center rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 text-xs font-semibold"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Descripción */}

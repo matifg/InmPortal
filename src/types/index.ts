@@ -40,6 +40,13 @@ export interface Property {
   imagenes?: { url: string }[];
   publicacionEstado?: PublicacionEstado;
   wordpressPageId?: string | null;
+  /** Servicios / checklist (API: booleans en Propiedad). */
+  luz?: boolean;
+  agua?: boolean;
+  gas?: boolean;
+  pavimento?: boolean;
+  cloacas?: boolean;
+  aptaCredito?: boolean;
 }
 
 export interface User {

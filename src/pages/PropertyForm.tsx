@@ -15,8 +15,21 @@ import PropertyFormPreview from '../components/PropertyFormPreview';
 import PropertyFormProgress, { type ProgressStep } from '../components/PropertyFormProgress';
 import PropertyFormSection from '../components/PropertyFormSection';
 import FormImageGrid, { type ImageGridItem } from '../components/FormImageGrid';
+import { pauseSessionIdle, resumeSessionIdle } from '../lib/sessionIdleGuard';
 
 type SavedImage = { id: string; url: string; orden?: number };
+
+const SERVICE_CHECKBOXES = [
+  { name: 'luz', label: 'Luz' },
+  { name: 'agua', label: 'Agua' },
+  { name: 'gas', label: 'Gas' },
+  { name: 'pavimento', label: 'Pavimento' },
+  { name: 'cloacas', label: 'Cloacas' },
+  { name: 'aptaCredito', label: 'Apta crédito' },
+] as const;
+
+const SESSION_EXPIRED_MSG =
+  'Tu sesión expiró. Volvé a iniciar sesión e intentá de nuevo.';
 
 function normalizeImageUrl(url: string): string {
   if (!url) return '';
@@ -95,6 +108,12 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     tipoId: '1',
     zona: '',
     ocultarPrecio: false,
+    luz: false,
+    agua: false,
+    gas: false,
+    pavimento: false,
+    cloacas: false,
+    aptaCredito: false,
   });
 
   useEffect(() => {
@@ -129,6 +148,12 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       tipoId: initialData.tipoId != null ? String(initialData.tipoId) : '1',
       zona: initialData.zona || '',
       ocultarPrecio: initialData.ocultarPrecio ?? false,
+      luz: Boolean(initialData.luz),
+      agua: Boolean(initialData.agua),
+      gas: Boolean(initialData.gas),
+      pavimento: Boolean(initialData.pavimento),
+      cloacas: Boolean(initialData.cloacas),
+      aptaCredito: Boolean(initialData.aptaCredito),
     });
     setGridItems(
       parseSavedImages(initialData.imagenes).map((data) => ({ type: 'saved' as const, data }))
@@ -488,34 +513,19 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     if (!membresiaActiva) return;
     setLoading(true);
     setErrorMsg('');
+    pauseSessionIdle();
 
     const token = localStorage.getItem('token');
 
-    const validationError = validate(mode);
-    if (validationError) {
-      setErrorMsg(validationError.message);
-      setLoading(false);
-      focusField(validationError.fieldId);
-      return;
-    }
-
-    const hasNewImages = gridItems.some((i) => i.type === 'new');
-
-    // Subir las imágenes nuevas a Supabase (mapeadas por key para respetar el orden de la grilla)
-    const uploadedUrlByKey = new Map<string, string>();
-    for (const item of gridItems) {
-      if (item.type !== 'new') continue;
-      const url = await uploadToSupabase(item.data.file);
-      if (url) uploadedUrlByKey.set(item.data.key, url);
-    }
-
-    if (hasNewImages && uploadedUrlByKey.size === 0) {
-      setErrorMsg('No se pudieron subir las imágenes. Intentá de nuevo.');
-      setLoading(false);
-      return;
-    }
-
     try {
+      const validationError = validate(mode);
+      if (validationError) {
+        setErrorMsg(validationError.message);
+        focusField(validationError.fieldId);
+        return;
+      }
+
+      // Primero guardar la propiedad; después subir fotos (evita 401 por idle en uploads largos).
       const payload = {
         titulo: formData.title,
         descripcion: formData.description,
@@ -535,6 +545,12 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         zona: isBaraderoBsAs ? formData.zona || null : null,
         ocultarPrecio: formData.ocultarPrecio,
         publicacionEstado: mode,
+        luz: formData.luz,
+        agua: formData.agua,
+        gas: formData.gas,
+        pavimento: formData.pavimento,
+        cloacas: formData.cloacas,
+        aptaCredito: formData.aptaCredito,
       };
 
       const url = isEdit && initialData?.id
@@ -551,17 +567,36 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       });
 
       if (!res.ok) {
+        if (res.status === 401) {
+          setErrorMsg(SESSION_EXPIRED_MSG);
+          toast.error(SESSION_EXPIRED_MSG);
+          return;
+        }
         const data = await res.json().catch(() => ({}));
         const msg = data.message || data.mensaje || 'Error al guardar propiedad';
         setErrorMsg(msg);
         toast.error(msg);
-        setLoading(false);
         return;
       }
 
       const propiedad = await res.json();
       const propiedadId = propiedad?.id ?? initialData?.id;
       let imageError = false;
+
+      const hasNewImages = gridItems.some((i) => i.type === 'new');
+      const uploadedUrlByKey = new Map<string, string>();
+      for (const item of gridItems) {
+        if (item.type !== 'new') continue;
+        const imageUrl = await uploadToSupabase(item.data.file);
+        if (imageUrl) uploadedUrlByKey.set(item.data.key, imageUrl);
+      }
+
+      if (hasNewImages && uploadedUrlByKey.size === 0) {
+        toast.error('Se guardó la propiedad, pero no se pudieron subir las imágenes');
+        setIsDirty(false);
+        navigate('/dashboard');
+        return;
+      }
 
       if (propiedadId) {
         const jsonHeaders = {
@@ -590,6 +625,14 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
               headers: jsonHeaders,
               body: JSON.stringify({ url: imageUrl, propiedad: { id: propiedadId }, orden }),
             });
+            if (imgRes.status === 401) {
+              toast.error(
+                'Se guardó la propiedad, pero tu sesión expiró al subir las fotos. Volvé a iniciar sesión.'
+              );
+              setIsDirty(false);
+              navigate('/dashboard');
+              return;
+            }
             if (!imgRes.ok) throw new Error('post imagen failed');
             const created = await imgRes.json();
             if (created?.id) ordenFinal.push({ id: String(created.id), orden });
@@ -617,6 +660,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       setErrorMsg('Error al guardar propiedad');
       toast.error('Error al guardar');
     } finally {
+      resumeSessionIdle();
       setLoading(false);
     }
   };
@@ -666,6 +710,10 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     },
   ], [formData, provinciaId, isBaraderoBsAs, totalImages, gridItems.length, isEdit]);
 
+  const previewServices = SERVICE_CHECKBOXES.filter(({ name }) => formData[name]).map(
+    ({ label }) => label
+  );
+
   const previewProps = {
     title: formData.title,
     price: formData.price,
@@ -679,6 +727,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     bedrooms: formData.bedrooms,
     bathrooms: formData.bathrooms,
     area: formData.area,
+    services: previewServices,
   };
 
   const fieldInput = (hasError: boolean) =>
@@ -1005,6 +1054,27 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                     min={0}
                     className={fieldInput(false)}
                   />
+                </div>
+              </div>
+
+              <div className="mt-5 pt-5 border-t border-gray-100">
+                <p className="text-sm font-medium text-gray-700 mb-3">Servicios</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {SERVICE_CHECKBOXES.map(({ name, label }) => (
+                    <label
+                      key={name}
+                      className="flex items-center gap-2.5 p-3 rounded-xl border border-gray-200 bg-gray-50 cursor-pointer hover:bg-gray-100/80 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        name={name}
+                        checked={formData[name]}
+                        onChange={handleChange}
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                      />
+                      <span className="text-sm font-medium text-gray-800">{label}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
             </PropertyFormSection>

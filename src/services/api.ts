@@ -65,6 +65,12 @@ function mapPropertyItem(item: any): Property {
     agent: parseAgentContact(item.agente ?? item.agent) ?? undefined,
     publicacionEstado: item.publicacionEstado ?? 'PUBLICADA',
     wordpressPageId: item.wordpressPageId ?? null,
+    luz: Boolean(item.luz),
+    agua: Boolean(item.agua),
+    gas: Boolean(item.gas),
+    pavimento: Boolean(item.pavimento),
+    cloacas: Boolean(item.cloacas),
+    aptaCredito: Boolean(item.aptaCredito),
   };
 }
 

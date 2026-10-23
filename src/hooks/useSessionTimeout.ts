@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { clearSession, getIdleTimeoutMs, isSessionExpired } from '../lib/auth';
+import { isSessionIdlePaused } from '../lib/sessionIdleGuard';
 
 const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart'] as const;
 const SESSION_ENDED_MSG = 'Ha finalizado su sesión.';
@@ -44,6 +45,12 @@ export function useSessionTimeout() {
 
       if (isSessionExpired(token)) {
         logout();
+        return;
+      }
+
+      // Guardados largos (muchas fotos) no deben contar como idle.
+      if (isSessionIdlePaused()) {
+        lastActivityRef.current = Date.now();
         return;
       }
 
