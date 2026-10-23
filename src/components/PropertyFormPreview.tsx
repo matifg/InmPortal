@@ -13,6 +13,7 @@ interface PropertyFormPreviewProps {
   bedrooms: string;
   bathrooms: string;
   area: string;
+  services?: string[];
 }
 
 function Placeholder({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,7 @@ export default function PropertyFormPreview({
   bedrooms,
   bathrooms,
   area,
+  services = [],
 }: PropertyFormPreviewProps) {
   const displayPrice = ocultarPrecio
     ? 'Consultar precio'
@@ -125,6 +127,19 @@ export default function PropertyFormPreview({
             <span className="text-[10px] text-gray-500 uppercase tracking-wide">Sup.</span>
           </div>
         </div>
+
+        {services.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {services.map((label) => (
+              <span
+                key={label}
+                className="inline-flex items-center rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-0.5 text-[11px] font-medium"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-2 pt-1 text-xs text-gray-400">
           <Home className="h-3.5 w-3.5" />
