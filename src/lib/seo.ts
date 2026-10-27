@@ -155,10 +155,7 @@ export function buildPropertyPageDescription(property: Property): string {
   }
 
   const lead = bits.join(' · ');
-  const fromDesc = property.description
-    ?.replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const fromDesc = property.description?.replace(/\s+/g, ' ').trim();
 
   if (fromDesc) {
     const combined = lead ? `${lead}. ${fromDesc}` : fromDesc;

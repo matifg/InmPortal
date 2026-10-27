@@ -27,7 +27,6 @@ import {
 import toast from 'react-hot-toast';
 import { usePageMeta } from '../hooks/usePageMeta';
 import { buildPropertyJsonLd, buildPropertyPageDescription, buildPropertyPageTitle } from '../lib/seo';
-import { htmlToPlainText, sanitizeDescriptionHtml, plainTextToHtml } from '../lib/safeHtml';
 
 const DESC_COLLAPSE_LEN = 420;
 
@@ -260,10 +259,10 @@ export default function PropertyDetail() {
   const mapEmbedUrl = `https://maps.google.com/maps?q=${mapQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
   const mapLinkUrl = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
 
-  const descriptionRaw = property.description || 'Sin descripción.';
-  const descriptionPlain = htmlToPlainText(descriptionRaw) || 'Sin descripción.';
-  const descriptionHtml = sanitizeDescriptionHtml(plainTextToHtml(descriptionRaw));
-  const descLong = descriptionPlain.length > DESC_COLLAPSE_LEN;
+  const description = property.description || 'Sin descripción.';
+  const descLong = description.length > DESC_COLLAPSE_LEN;
+  const descShown =
+    descExpanded || !descLong ? description : `${description.slice(0, DESC_COLLAPSE_LEN)}…`;
 
   const whatsappMessage = property.ocultarPrecio
     ? `Hola ${agentName}, me interesa "${property.title}". ¿Podrías indicarme el precio?`
@@ -279,11 +278,9 @@ export default function PropertyDetail() {
       : null,
     { value: property.bedrooms, label: 'Habitaciones', emoji: '🛏' },
     { value: property.bathrooms, label: 'Baños', emoji: '🚿' },
-    hasCount(property.area)
-      ? { value: `${property.area} m²`, label: 'm² totales', emoji: '📐' }
-      : null,
+    { value: property.area ? `${property.area} m²` : '—', label: 'Superficie total', emoji: '📐' },
     hasCount(property.areaCubierta)
-      ? { value: `${property.areaCubierta} m²`, label: 'm² cubiertos', emoji: '🧱' }
+      ? { value: `${property.areaCubierta} m²`, label: 'Superficie cubierta', emoji: '🧱' }
       : null,
     hasCount(property.cocheras)
       ? { value: property.cocheras, label: property.cocheras === 1 ? 'Cochera' : 'Cocheras', emoji: '🚗' }
@@ -350,18 +347,13 @@ export default function PropertyDetail() {
               {property.cocheras} coch.
             </span>
           )}
-          {hasCount(property.area) && (
-            <span className="inline-flex items-center gap-1.5">
-              <Square className="h-4 w-4 text-indigo-500 shrink-0" />
-              {property.area} m² totales
-            </span>
-          )}
-          {hasCount(property.areaCubierta) && (
-            <span className="inline-flex items-center gap-1.5">
-              <Square className="h-4 w-4 text-indigo-500 shrink-0" />
-              {property.areaCubierta} m² cubiertos
-            </span>
-          )}
+          <span className="inline-flex items-center gap-1.5">
+            <Square className="h-4 w-4 text-indigo-500 shrink-0" />
+            {property.area ? `${property.area} m²` : '—'}
+            {hasCount(property.areaCubierta) && (
+              <span className="text-gray-500">({property.areaCubierta} m² cub.)</span>
+            )}
+          </span>
           <span className="inline-flex items-center gap-1.5">
             <HomeIcon className="h-4 w-4 text-indigo-500 shrink-0" />
             {property.propertyType}
@@ -588,12 +580,9 @@ export default function PropertyDetail() {
             <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-200 shadow-sm">
               <h2 className="text-lg font-bold text-gray-900 mb-1">Descripción</h2>
               <p className="text-sm text-gray-500 mb-4">Detalles de la propiedad</p>
-              <div
-                className={`text-gray-600 leading-relaxed text-[15px] [&_strong]:font-semibold [&_strong]:text-gray-800 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 ${
-                  descExpanded || !descLong ? '' : 'line-clamp-6'
-                }`}
-                dangerouslySetInnerHTML={{ __html: descriptionHtml }}
-              />
+              <p className="text-gray-600 whitespace-pre-line leading-relaxed text-[15px]">
+                {descShown}
+              </p>
               {descLong && (
                 <button
                   type="button"
