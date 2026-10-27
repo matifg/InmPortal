@@ -124,7 +124,7 @@ export default function PropertyFormPreview({
                 <span className="text-gray-300 font-normal">—</span>
               )}
             </span>
-            <span className="text-[10px] text-gray-500 uppercase tracking-wide">Sup.</span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-wide">m² tot.</span>
           </div>
         </div>
 
