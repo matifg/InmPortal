@@ -43,9 +43,11 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     hasCount(property.cocheras)
       ? { icon: Car, value: property.cocheras, title: 'Cocheras' }
       : null,
-    { icon: Square, value: `${property.area}m²`, title: 'Superficie total' },
+    hasCount(property.area)
+      ? { icon: Square, value: `${property.area} m²`, title: 'm² totales' }
+      : null,
     hasCount(property.areaCubierta)
-      ? { icon: Square, value: `${property.areaCubierta}m²`, title: 'Superficie cubierta' }
+      ? { icon: Square, value: `${property.areaCubierta} m²`, title: 'm² cubiertos' }
       : null,
   ].filter(Boolean) as { icon: typeof Bed; value: string | number; title: string }[];
 
@@ -132,9 +134,11 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              Inmobiliaria
-            </p>
+            {!logoSrc && (
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Inmobiliaria
+              </p>
+            )}
             <p className="text-sm font-medium text-slate-800 truncate group-hover/agency:text-indigo-700">
               {agencyName || 'Ver perfil'}
             </p>

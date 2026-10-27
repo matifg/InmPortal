@@ -15,7 +15,9 @@ import PropertyFormPreview from '../components/PropertyFormPreview';
 import PropertyFormProgress, { type ProgressStep } from '../components/PropertyFormProgress';
 import PropertyFormSection from '../components/PropertyFormSection';
 import FormImageGrid, { type ImageGridItem } from '../components/FormImageGrid';
+import DescriptionEditor from '../components/DescriptionEditor';
 import { pauseSessionIdle, resumeSessionIdle } from '../lib/sessionIdleGuard';
+import { descriptionHasContent, sanitizeDescriptionHtml } from '../lib/safeHtml';
 
 type SavedImage = { id: string; url: string; orden?: number };
 
@@ -528,7 +530,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
       // Primero guardar la propiedad; después subir fotos (evita 401 por idle en uploads largos).
       const payload = {
         titulo: formData.title,
-        descripcion: formData.description,
+        descripcion: sanitizeDescriptionHtml(formData.description),
         direccion: formData.address,
         ciudad: formData.city,
         precio: formData.price ? parsePrice(formData.price) : 0,
@@ -685,7 +687,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     {
       id: 'info',
       label: 'Información',
-      complete: !!(formData.title.trim() && formData.price && formData.description.trim()),
+      complete: !!(formData.title.trim() && formData.price && descriptionHasContent(formData.description)),
     },
     {
       id: 'location',
@@ -826,12 +828,13 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Descripción <span className="text-red-500">*</span>
                   </label>
-                  <textarea
-                    name="description"
+                  <DescriptionEditor
                     value={formData.description}
-                    onChange={handleChange}
-                    className={`${fieldInput(!!errorMsg && !formData.description.trim())} h-24 resize-none`}
-                    placeholder="Destacá lo mejor de la propiedad: ambientes, amenities, entorno..."
+                    hasError={!!errorMsg && !descriptionHasContent(formData.description)}
+                    onChange={(html) => {
+                      markDirty();
+                      setFormData((prev) => ({ ...prev, description: html }));
+                    }}
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
@@ -1029,7 +1032,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Superficie total (m²)
+                    m² totales
                   </label>
                   <input
                     type="number"
@@ -1043,7 +1046,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Superficie cubierta (m²)
+                    m² cubiertos
                   </label>
                   <input
                     type="number"
