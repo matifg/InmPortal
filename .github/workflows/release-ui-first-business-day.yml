@@ -1,0 +1,71 @@
+# Publica la UI (negrita / m2 / etiqueta Inmobiliaria) el primer día hábil del mes.
+# Rama con el cambio: feature/ui-descripcion-m2-negrita
+# Mientras tanto main tiene el revert; este job deshace ese revert.
+name: Release UI primer dia habil
+
+on:
+  schedule:
+    # 12:00 UTC = 09:00 Argentina; corre los días 1–5 por si el 1 cae finde
+    - cron: '0 12 1-5 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ¿Hoy es el primer día hábil del mes? (Argentina)
+        id: check
+        run: |
+          set -euo pipefail
+          TODAY=$(TZ=America/Argentina/Buenos_Aires date +%Y-%m-%d)
+          YEAR=$(TZ=America/Argentina/Buenos_Aires date +%Y)
+          MONTH=$(TZ=America/Argentina/Buenos_Aires date +%m)
+          FIRST=""
+          for d in 01 02 03 04 05; do
+            DOW=$(TZ=America/Argentina/Buenos_Aires date -d "${YEAR}-${MONTH}-${d}" +%u)
+            if [ "$DOW" -le 5 ]; then
+              FIRST="${YEAR}-${MONTH}-${d}"
+              break
+            fi
+          done
+          echo "today=$TODAY first_business=$FIRST"
+          if [ "$TODAY" = "$FIRST" ]; then
+            echo "fire=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "fire=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publicar en main (revert del revert)
+        if: steps.check.outputs.fire == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+
+          REVERT_SHA=$(git log --grep='Revert "UI: negrita en descripcion' --pretty=%H -n 1)
+          if [ -z "$REVERT_SHA" ]; then
+            echo "No hay revert pendiente; nada que publicar."
+            exit 0
+          fi
+
+          # Si ese commit ya fue deshecho, no hacer nada
+          if git log --grep='Revert "Revert \"UI: negrita en descripcion' --pretty=%H -n 1 | grep -q .; then
+            echo "Ya se publicó antes; salgo."
+            exit 0
+          fi
+
+          git revert --no-edit "$REVERT_SHA"
+          git push origin main
+          echo "Publicado en main."
