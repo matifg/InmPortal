@@ -333,14 +333,24 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
   };
 
   const validate = (mode: SaveMode): ValidationError | null => {
-    if (mode === 'BORRADOR') return null;
+    // Borrador: pide precio (o marcar ocultar precio) + título mínimo.
+    if (mode === 'BORRADOR') {
+      if (!formData.title.trim()) {
+        return { message: 'El título es obligatorio', fieldId: 'field-title' };
+      }
+      if (!formData.price && !formData.ocultarPrecio) {
+        return {
+          message: 'Ingresá un precio o marcá "Ocultar precio al público"',
+          fieldId: 'field-price',
+        };
+      }
+      return null;
+    }
 
     if (!formData.title.trim()) {
       return { message: 'El título es obligatorio', fieldId: 'field-title' };
     }
-    if (!formData.price) {
-      return { message: 'El precio es obligatorio', fieldId: 'field-price' };
-    }
+    // Publicar sin precio: se permite; abajo se fuerza ocultarPrecio.
     if (!formData.city.trim()) {
       return { message: 'La localidad es obligatoria', fieldId: 'field-localidad' };
     }
@@ -527,6 +537,14 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         return;
       }
 
+      // Publicar sin precio → ocultar precio automáticamente.
+      const sinPrecio = !formData.price;
+      const ocultarPrecio =
+        mode === 'PUBLICADA' && sinPrecio ? true : formData.ocultarPrecio || sinPrecio;
+      if (mode === 'PUBLICADA' && sinPrecio && !formData.ocultarPrecio) {
+        setFormData((prev) => ({ ...prev, ocultarPrecio: true }));
+      }
+
       // Primero guardar la propiedad; después subir fotos (evita 401 por idle en uploads largos).
       const payload = {
         titulo: formData.title,
@@ -545,7 +563,7 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
         operacion: formData.operation,
         moneda: formData.currency,
         zona: isBaraderoBsAs ? formData.zona || null : null,
-        ocultarPrecio: formData.ocultarPrecio,
+        ocultarPrecio,
         publicacionEstado: mode,
         luz: formData.luz,
         agua: formData.agua,
@@ -687,7 +705,11 @@ export default function PropertyForm({ initialData, isEdit = false }: any) {
     {
       id: 'info',
       label: 'Información',
-      complete: !!(formData.title.trim() && formData.price && descriptionHasContent(formData.description)),
+      complete: !!(
+        formData.title.trim() &&
+        (formData.price || formData.ocultarPrecio) &&
+        descriptionHasContent(formData.description)
+      ),
     },
     {
       id: 'location',

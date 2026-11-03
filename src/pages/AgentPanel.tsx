@@ -502,12 +502,21 @@ export default function AgentPanel() {
                         className="p-2 rounded-lg hover:bg-red-50 transition group"
                         title="Eliminar"
                         aria-label="Eliminar"
-                        onClick={e => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          const confirmDelete = window.confirm('Eliminar propiedad?');
+                          const confirmDelete = window.confirm(
+                            `¿Eliminar "${p.title}"? Esta acción no se puede deshacer.`
+                          );
                           if (!confirmDelete) return;
-                          // deleteProperty(p.id); // Implementa si tienes la función
-                          toast.success('Propiedad eliminada (simulado)');
+                          try {
+                            await api.deleteProperty(p.id);
+                            setProperties((prev) => prev.filter((x) => x.id !== p.id));
+                            toast.success('Propiedad eliminada');
+                          } catch (err) {
+                            toast.error(
+                              err instanceof Error ? err.message : 'No se pudo eliminar la propiedad'
+                            );
+                          }
                         }}
                       >
                         <Trash2 className="h-5 w-5 text-gray-400 group-hover:text-red-600" />

@@ -187,4 +187,55 @@ export const api = {
 
     return await res.json();
   },
+
+  /** DELETE /propiedades/:id */
+  deleteProperty: async (id: string): Promise<void> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Sesión expirada');
+
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/propiedades/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.status === 401) throw new Error('Sesión expirada. Volvé a iniciar sesión.');
+    if (res.status === 403) throw new Error('No autorizado a eliminar esta propiedad');
+    if (res.status === 404) throw new Error('Propiedad no encontrada');
+    if (!res.ok) throw new Error('Error al eliminar la propiedad');
+  },
+
+  /**
+   * Pasa una propiedad a BORRADOR (sale del catálogo público).
+   * Reenvía el estado actual para no pisar campos en el PUT del backend.
+   */
+  unpublishProperty: async (property: Property): Promise<Property> => {
+    const payload = {
+      titulo: property.title,
+      descripcion: property.description,
+      direccion: property.address,
+      ciudad: property.city,
+      precio: property.price ?? 0,
+      ocultarPrecio: Boolean(property.ocultarPrecio),
+      superficieM2: property.area ?? 0,
+      superficieCubiertaM2: property.areaCubierta ?? null,
+      habitaciones: property.bedrooms ?? 0,
+      banios: property.bathrooms ?? 0,
+      totalAmbientes: property.totalAmbientes ?? null,
+      cocheras: property.cocheras ?? null,
+      tipoId: property.tipoId ?? 1,
+      estado: property.status,
+      operacion: property.operation ?? property.status,
+      moneda: property.currency ?? 'USD',
+      zona: property.zona ?? null,
+      luz: Boolean(property.luz),
+      agua: Boolean(property.agua),
+      gas: Boolean(property.gas),
+      pavimento: Boolean(property.pavimento),
+      cloacas: Boolean(property.cloacas),
+      aptaCredito: Boolean(property.aptaCredito),
+      publicacionEstado: 'BORRADOR',
+    };
+    const updated = await api.updateProperty(property.id, payload);
+    return mapPropertyItem(updated);
+  },
 };

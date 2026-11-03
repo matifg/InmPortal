@@ -21,8 +21,10 @@ import {
   Pencil,
   Heart,
   Eye,
+  EyeOff,
   Car,
   LayoutGrid,
+  Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usePageMeta } from '../hooks/usePageMeta';
@@ -72,6 +74,7 @@ export default function PropertyDetail() {
   const [loading, setLoading] = useState(true);
   const [descExpanded, setDescExpanded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
   const isDesktop = useIsDesktop();
 
   const pageTitle = loading
@@ -210,6 +213,25 @@ export default function PropertyDetail() {
       toast.success('Enlace copiado');
     } catch {
       toast.error('No se pudo compartir');
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!property || unpublishing) return;
+    const ok = window.confirm(
+      '¿Despublicar esta propiedad? Pasará a borrador y dejará de verse en el catálogo.'
+    );
+    if (!ok) return;
+
+    setUnpublishing(true);
+    try {
+      const updated = await api.unpublishProperty(property);
+      setProperty(updated);
+      toast.success('Propiedad despublicada (borrador)');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo despublicar');
+    } finally {
+      setUnpublishing(false);
     }
   };
 
@@ -489,6 +511,21 @@ export default function PropertyDetail() {
               <Share2 className="h-4 w-4" />
               Compartir publicación
             </button>
+            {isPublished && (
+              <button
+                type="button"
+                onClick={() => void handleUnpublish()}
+                disabled={unpublishing}
+                className={`${ownerActionBtn} border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 disabled:opacity-60`}
+              >
+                {unpublishing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+                {unpublishing ? 'Despublicando...' : 'Despublicar'}
+              </button>
+            )}
             <button
               type="button"
               disabled
@@ -716,14 +753,30 @@ export default function PropertyDetail() {
               <Pencil className="h-4 w-4" />
               Editar
             </button>
-            <button
-              type="button"
-              onClick={handleShare}
-              className="flex-1 flex items-center justify-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-3 rounded-xl font-semibold text-sm transition-colors"
-            >
-              <Share2 className="h-4 w-4" />
-              Compartir
-            </button>
+            {isPublished ? (
+              <button
+                type="button"
+                onClick={() => void handleUnpublish()}
+                disabled={unpublishing}
+                className="flex-1 flex items-center justify-center gap-2 border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 px-4 py-3 rounded-xl font-semibold text-sm transition-colors disabled:opacity-60"
+              >
+                {unpublishing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+                Despublicar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleShare}
+                className="flex-1 flex items-center justify-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-3 rounded-xl font-semibold text-sm transition-colors"
+              >
+                <Share2 className="h-4 w-4" />
+                Compartir
+              </button>
+            )}
           </div>
         </div>
       )}
